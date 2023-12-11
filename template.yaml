@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ProcessKvsRecording
+
+  Sample SAM Template for ProcessKvsRecording
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+
+Resources:
+  ProcessKvsRecording:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ProcessKvs
+      Handler: dev.freewine.ProcessKvs.App::handleRequest
+      Runtime: java11
+      Architectures:
+        - x86_64
+      MemorySize: 512
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          PARAM1: VALUE
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
+
+Outputs:
+  ProcessKvsRecording:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt ProcessKvsRecording.Arn
+  ProcessKvsRecordingIamRole:
+    Description: "Implicit IAM Role created for function"
+    Value: !GetAtt ProcessKvsRecordingRole.Arn
