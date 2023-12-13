@@ -1,63 +1,55 @@
 {
-    "body": "{\"message\": \"hello world\"}",
-    "resource": "/{proxy+}",
-    "path": "/path/to/resource",
-    "httpMethod": "POST",
-    "isBase64Encoded": false,
-    "queryStringParameters": {
-      "foo": "bar"
-    },
-    "pathParameters": {
-      "proxy": "/path/to/resource"
-    },
-    "stageVariables": {
-      "baz": "qux"
-    },
-    "headers": {
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Encoding": "gzip, deflate, sdch",
-      "Accept-Language": "en-US,en;q=0.8",
-      "Cache-Control": "max-age=0",
-      "CloudFront-Forwarded-Proto": "https",
-      "CloudFront-Is-Desktop-Viewer": "true",
-      "CloudFront-Is-Mobile-Viewer": "false",
-      "CloudFront-Is-SmartTV-Viewer": "false",
-      "CloudFront-Is-Tablet-Viewer": "false",
-      "CloudFront-Viewer-Country": "US",
-      "Host": "1234567890.execute-api.us-east-1.amazonaws.com",
-      "Upgrade-Insecure-Requests": "1",
-      "User-Agent": "Custom User Agent String",
-      "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
-      "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
-      "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
-      "X-Forwarded-Port": "443",
-      "X-Forwarded-Proto": "https"
-    },
-    "requestContext": {
-      "accountId": "123456789012",
-      "resourceId": "123456",
-      "stage": "prod",
-      "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
-      "requestTime": "09/Apr/2015:12:34:56 +0000",
-      "requestTimeEpoch": 1428582896000,
-      "identity": {
-        "cognitoIdentityPoolId": null,
-        "accountId": null,
-        "cognitoIdentityId": null,
-        "caller": null,
-        "accessKey": null,
-        "sourceIp": "127.0.0.1",
-        "cognitoAuthenticationType": null,
-        "cognitoAuthenticationProvider": null,
-        "userArn": null,
-        "userAgent": "Custom User Agent String",
-        "user": null
+  "Name": "ContactFlowEvent",
+  "Details": {
+    "ContactData": {
+      "Attributes": {
+        "agentId": "15dfe8b3-ae38-4a8e-9778-7b20487cac16",
+        "transcribeVoicemail": "true",
+        "saveCallRecording": "true",
+        "extensionNumber": "1",
+        "agentName": "freewine wu",
+        "encryptVoicemail": "true",
+        "transferMessage": "Please wait while we transfer you to freewine wu"
       },
-      "path": "/prod/path/to/resource",
-      "resourcePath": "/{proxy+}",
-      "httpMethod": "POST",
-      "apiId": "1234567890",
-      "protocol": "HTTP/1.1"
-    }
+      "AwsRegion": "us-west-2",
+      "Channel": "VOICE",
+      "ContactId": "b3c6d7df-df8d-40ca-bc3a-6768686f31f6",
+      "CustomerEndpoint": {
+        "Address": "+13467668061",
+        "Type": "TELEPHONE_NUMBER"
+      },
+      "CustomerId": null,
+      "Description": null,
+      "InitialContactId": "b3c6d7df-df8d-40ca-bc3a-6768686f31f6",
+      "InitiationMethod": "INBOUND",
+      "InstanceARN": "arn:aws:connect:us-west-2:032998046382:instance/0986d350-0ebf-46ed-8c88-db4b40e93690",
+      "LanguageCode": "en-US",
+      "MediaStreams": {
+        "Customer": {
+          "Audio": {
+            "StartFragmentNumber": "91343852333181432392682062658901601942802993150",
+            "StartTimestamp": "1702429324683",
+            "StreamARN": "arn:aws:kinesisvideo:us-west-2:032998046382:stream/freewine-connect-freewine-oregon-contact-011f47c2-76e0-4f82-ad5c-4e0a4ebc6ec3/1702429119592",
+            "StopFragmentNumber": "91343852333181432447151424387458336771362440536",
+            "StopTimestamp": "1702429336692"
+          }
+        }
+      },
+      "Name": null,
+      "PreviousContactId": "b3c6d7df-df8d-40ca-bc3a-6768686f31f6",
+      "Queue": null,
+      "References": {},
+      "RelatedContactId": null,
+      "SegmentAttributes": {
+        "connect:Subtype": {
+          "ValueString": "connect:Telephony"
+        }
+      },
+      "SystemEndpoint": {
+        "Address": "+13343774004",
+        "Type": "TELEPHONE_NUMBER"
+      }
+    },
+    "Parameters": {}
   }
-  
+}

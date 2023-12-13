@@ -7,8 +7,21 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.amazonaws:aws-lambda-java-core:1.2.1'
-    implementation 'com.amazonaws:aws-lambda-java-events:3.11.0'
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.4'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.609'
+    implementation 'com.amazonaws:amazon-kinesis-video-streams-parser-library:1.2.5'
+    implementation 'com.amazonaws:aws-lambda-java-log4j2:1.5.1'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+    implementation 'org.json:json:20231013'
+    implementation 'javax.xml.bind:jaxb-api:2.3.0'
+
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.22'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
+
     testImplementation 'junit:junit:4.13.2'
 }
 

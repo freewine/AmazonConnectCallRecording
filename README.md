@@ -108,7 +108,7 @@ Tests are defined in the `HelloWorldFunction/src/test` folder in this project.
 
 ```bash
 ProcessKvsRecording$ cd HelloWorldFunction
-HelloWorldFunction$ gradle test
+HelloWorldFunction$ gradle test.json
 ```
 
 ## Cleanup

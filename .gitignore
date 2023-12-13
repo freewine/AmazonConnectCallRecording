@@ -1,3 +1,5 @@
 .aws-sam
 ProcessKvs/.gradle
 ProcessKvs/build
+.idea
+samconfig.toml
