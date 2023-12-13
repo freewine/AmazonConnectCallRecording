@@ -56,15 +56,18 @@ import java.nio.file.Paths;
  */
 public final class AudioUtils {
 
+    public static final int CHANNEL_MONO = 1;
+    public static final int CHANNEL_STEREO = 2;
+
     private static final Logger logger = LoggerFactory.getLogger(AudioUtils.class);
 
     /**
      * Converts the given raw audio data into a wav file. Returns the wav file back.
      */
-    private static File convertToWav(String audioFilePath) throws IOException, UnsupportedAudioFileException {
+    public static File convertToWav(String audioFilePath, int channels) throws IOException, UnsupportedAudioFileException {
         File outputFile = new File(audioFilePath.replace(".raw", ".wav"));
         AudioInputStream source = new AudioInputStream(Files.newInputStream(Paths.get(audioFilePath)),
-                new AudioFormat(8000, 16, 1, true, false), -1); // 8KHz, 16 bit, 1 channel, signed, little-endian
+                new AudioFormat(8000, 16, channels, true, false), -1); // 8KHz, 16 bit, 1 channel, signed, little-endian
         AudioSystem.write(source, AudioFileFormat.Type.WAVE, outputFile);
         return outputFile;
     }
@@ -80,7 +83,7 @@ public final class AudioUtils {
      */
     public static S3UploadInfo uploadRawAudio(Regions region, String bucketName, String keyPrefix, String audioFilePath,
                                               String contactId, boolean publicReadAcl,
-                                              AWSCredentialsProvider awsCredentials) {
+                                              AWSCredentialsProvider awsCredentials, int channels) {
         File wavFile = null;
         S3UploadInfo uploadInfo = null;
 
@@ -91,7 +94,12 @@ public final class AudioUtils {
                     .withCredentials(awsCredentials)
                     .build();
 
-            wavFile = convertToWav(audioFilePath);
+            //only channel mono need convert
+            if(channels == CHANNEL_MONO) {
+                wavFile = convertToWav(audioFilePath, channels);
+            }else {
+                wavFile = new File(audioFilePath);
+            }
 
             // upload the raw audio file to the designated S3 location
             String objectKey = keyPrefix + wavFile.getName();
@@ -119,7 +127,7 @@ public final class AudioUtils {
             logger.error("Failed to convert to wav: ", e);
         } finally {
             if (wavFile != null) {
-                wavFile.delete();
+                //wavFile.delete();
             }
         }
 

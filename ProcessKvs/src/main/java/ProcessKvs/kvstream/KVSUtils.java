@@ -24,13 +24,16 @@ import com.amazonaws.services.kinesisvideo.model.GetMediaRequest;
 import com.amazonaws.services.kinesisvideo.model.GetMediaResult;
 import com.amazonaws.services.kinesisvideo.model.StartSelector;
 import com.amazonaws.services.kinesisvideo.model.StartSelectorType;
+import com.google.common.base.Strings;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.amazonaws.util.StringUtils.isNullOrEmpty;
@@ -100,10 +103,12 @@ public final class KVSUtils {
      * @throws MkvElementVisitException
      */
     @SuppressWarnings("unchecked")
-    public static ByteBuffer getByteBufferFromStream(StreamingMkvReader streamingMkvReader,
+    public static Map<String,ByteBuffer> getByteBufferFromStream(StreamingMkvReader streamingMkvReader,
                                                      FragmentMetadataVisitor fragmentVisitor,
                                                      FragmentMetadataVisitor.BasicMkvTagProcessor tagProcessor,
                                                      String contactId) throws MkvElementVisitException {
+
+        Map<String,ByteBuffer> bufferMap = new HashMap<>();
 
         while (streamingMkvReader.mightHaveNext()) {
             Optional<MkvElement> mkvElementOptional = streamingMkvReader.nextIfAvailable();
@@ -119,7 +124,7 @@ public final class KVSUtils {
                         if (contactIdFromStream != null && !contactIdFromStream.equals(contactId)) {
                             //expected Connect ContactId does not match the actual ContactId. End the streaming by
                             //returning an empty ByteBuffer
-                            return ByteBuffer.allocate(0);
+                            return bufferMap;
                         }
                         tagProcessor.clear();
                     }
@@ -129,14 +134,18 @@ public final class KVSUtils {
                     ByteBuffer audioBuffer = frame.getFrameData();
                     long trackNumber = frame.getTrackNumber();
                     MkvTrackMetadata metadata = fragmentVisitor.getMkvTrackMetadata(trackNumber);
-                    if (TrackName.AUDIO_FROM_CUSTOMER.getName().equals(metadata.getTrackName())) {
-                        return audioBuffer;
+                    if (Strings.isNullOrEmpty(metadata.getTrackName()) || TrackName.AUDIO_FROM_CUSTOMER.getName().equals(metadata.getTrackName())) {
+                        bufferMap.put(TrackName.AUDIO_FROM_CUSTOMER.getName(), audioBuffer);
+                        return bufferMap;
+                    } else if (TrackName.AUDIO_TO_CUSTOMER.getName().equals(metadata.getTrackName())) {
+                        bufferMap.put(TrackName.AUDIO_TO_CUSTOMER.getName(), audioBuffer);
+                        return bufferMap;
                     }
                 }
             }
         }
 
-        return ByteBuffer.allocate(0);
+        return bufferMap;
     }
 
     /**

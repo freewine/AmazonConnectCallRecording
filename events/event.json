@@ -13,7 +13,7 @@
       },
       "AwsRegion": "us-west-2",
       "Channel": "VOICE",
-      "ContactId": "b3c6d7df-df8d-40ca-bc3a-6768686f31f6",
+      "ContactId": "f776447a-d3ed-4f48-abcb-cd063f182677",
       "CustomerEndpoint": {
         "Address": "+13467668061",
         "Type": "TELEPHONE_NUMBER"
