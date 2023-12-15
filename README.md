@@ -73,6 +73,10 @@ The first command will build the source of your application. The second command 
 
 You can find your API Gateway Endpoint URL in the output values displayed after deployment.
 
+## Import Amazon Connect contact flow
+The sample Amazon Connect contact flows are included in the `SampleFlows` folder in this project. You can import it to Amazon Connect for testing.
+
+
 ## Use the SAM CLI to build and test locally
 
 Build your application with the `sam build` command.
