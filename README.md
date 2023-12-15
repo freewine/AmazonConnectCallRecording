@@ -2,12 +2,12 @@
 
 This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
 
-- HelloWorldFunction/src/main - Code for the application's Lambda function.
+- ProcessKvs/src/main - Code for the application's Lambda function.
 - events - Invocation events that you can use to invoke the function.
-- HelloWorldFunction/src/test - Unit tests for the application code. 
+- ProcessKvs/src/test - Unit tests for the application code. 
 - template.yaml - A template that defines the application's AWS resources.
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
 
 If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
 The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
@@ -24,7 +24,29 @@ The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI
 * [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
 * [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
 
-## Deploy the sample application
+## Lambda Execution Role policies
+The lambda need to read stream from KVS, uploads voice recording to S3, and save the result to Dynamo DB. So corresponding permissions need to be configured in template.yaml. For simplicity, the following Policies are granted for full access permissions. In production deployments, it's recommended to follow the principle of least privilege and only grant specific permissions to the specific resources.
+```bash
+Policies:
+    - AmazonDynamoDBFullAccess
+    - AmazonS3FullAccess
+    - AmazonKinesisVideoStreamsReadOnlyAccess
+```
+
+## Lambda Environment variables
+Some Lambda environment variables need to be set to run the Lambda properly. `REGION` us used for where Amazon Connect is running, `RECORDINGS_BUCKET_NAME` is for the S3 bucket in which the voice recording will be uploaded, `RECORDINGS_KEY_PREFIX` for the Bucket prefix, `DDB_TABLE` for the Dynamo DB table in which Result will be saved. Other environment variables should not be changed.
+```bash
+Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+    Variables:
+        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
+        REGION: us-west-2
+        RECORDINGS_BUCKET_NAME: freewine-connect-voicemail-us-west-2
+        RECORDINGS_KEY_PREFIX: recordings/
+        START_SELECTOR_TYPE: FRAGMENT_NUMBER
+        DDB_TABLE: ConnectCallRecording
+```
+
+## Deploy the application
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
 
@@ -59,14 +81,14 @@ Build your application with the `sam build` command.
 ProcessKvsRecording$ sam build
 ```
 
-The SAM CLI installs dependencies defined in `HelloWorldFunction/build.gradle`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+The SAM CLI installs dependencies defined in `ProcessKvs/build.gradle`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
 
 Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```bash
-ProcessKvsRecording$ sam local invoke HelloWorldFunction --event events/event.json
+ProcessKvsRecording$ sam local invoke ProcessKvsRecording --event events/event.json
 ```
 
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
@@ -74,17 +96,6 @@ The SAM CLI can also emulate your application's API. Use the `sam local start-ap
 ```bash
 ProcessKvsRecording$ sam local start-api
 ProcessKvsRecording$ curl http://localhost:3000/
-```
-
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
-
-```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
 ```
 
 ## Add a resource to your application
@@ -97,23 +108,23 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-ProcessKvsRecording$ sam logs -n HelloWorldFunction --stack-name ProcessKvsRecording --tail
+ProcessKvsRecording$ sam logs -n ProcessKvsRecording --stack-name ProcessKvsRecording --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
 
 ## Unit tests
 
-Tests are defined in the `HelloWorldFunction/src/test` folder in this project.
+Tests are defined in the `ProcessKvs/src/test` folder in this project.
 
 ```bash
-ProcessKvsRecording$ cd HelloWorldFunction
-HelloWorldFunction$ gradle test.json
+ProcessKvsRecording$ cd ProcessKvsRecording
+ProcessKvsRecording$ gradle test.json
 ```
 
 ## Cleanup
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+To delete the application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
 
 ```bash
 aws cloudformation delete-stack --stack-name ProcessKvsRecording
@@ -123,4 +134,4 @@ aws cloudformation delete-stack --stack-name ProcessKvsRecording
 
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)

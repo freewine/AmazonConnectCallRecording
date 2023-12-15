@@ -113,10 +113,10 @@ public class ProcessKvsLambda implements RequestStreamHandler {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("contactId", AttributeValue.builder().s(data.getContactId()).build());
         item.put("dateTime", AttributeValue.builder().s(data.getDateTime().toString()).build());
-        item.put("awsRegion", AttributeValue.builder().s(data.getAwsRegion()).build());
+        item.put("awsRegion", AttributeValue.builder().s(data.getAwsRegion() == null ? REGION.getName() : data.getAwsRegion()).build());
         item.put("recordingAuth", AttributeValue.builder().s(String.valueOf(data.getRecordingAuth())).build());
-        item.put("languageCode", AttributeValue.builder().s(data.getLanguageCode()).build());
-        item.put("agentName", AttributeValue.builder().s(data.getAgentName()).build());
+        item.put("languageCode", AttributeValue.builder().s(data.getLanguageCode() == null ? "" : data.getLanguageCode()).build());
+        //item.put("agentName", AttributeValue.builder().s(data.getAgentName() == null ? "" : data.getAgentName()).build());
         item.put("audioFromCustomer", AttributeValue.builder().s(data.getAudioFromCustomer() == null ? "" : data.getAudioFromCustomer()).build());
         item.put("audioToCustomer", AttributeValue.builder().s(data.getAudioToCustomer() == null ? "" : data.getAudioToCustomer()).build());
         item.put("audioMixed", AttributeValue.builder().s(data.getAudioMixed() == null ? "" : data.getAudioMixed()).build());
