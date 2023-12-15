@@ -167,23 +167,29 @@ public final class AudioUtils {
         int sampleSizeInBits = format.getSampleSizeInBits();
         int size = from.available();
 
-        byte[] data1 = new byte[size];
-        byte[] data2 = new byte[size];
-
-        int data1Len = from.read(data1);
-        int data2Len = to.read(data2);
-
         byte[] result = new byte[size];
 
         // Mix frame sample-by-sample
-        for (int i = 0; i < data1.length; i += frameSize) {
+        for (int i = 0; i < size; i += frameSize) {
             int mixedSample;
             // Assume 16-bit samples
             short sample1, sample2;
-            // Convert bytes to 16-bit sample
-            sample1 = getSample(data1[i], data1[i + 1]);
 
-            sample2 = getSample(data2[i], data2[i + 1]);
+            byte[] data1 = new byte[frameSize];
+            byte[] data2 = new byte[frameSize];
+
+            int data1Len = from.read(data1);
+            int data2Len = to.read(data2);
+
+            if(data1Len <= 0 || data2Len <= 0)
+            {
+                break;
+            }
+
+            // Convert bytes to 16-bit sample
+            sample1 = getSample(data1[0], data1[1]);
+
+            sample2 = getSample(data2[0], data2[1]);
 
             // Mix samples
             mixedSample = sample1 + sample2;
@@ -193,13 +199,13 @@ public final class AudioUtils {
             mixedSample = Math.min(Short.MAX_VALUE, mixedSample);
             mixedSample = Math.max(Short.MIN_VALUE, mixedSample);
 
-            // Convert back to bytes
+            // Convert back to bytes in bigEndian model
             result[i] = (byte) (mixedSample >> 8);
             result[i + 1] = (byte) (mixedSample & 0xFF);
         }
 
-        AudioInputStream mixedStream = new AudioInputStream(new ByteArrayInputStream(result), format, result.length);
-
+        AudioFormat audioFormat = new AudioFormat(8000, 16, CHANNEL_MONO, true, false);
+        AudioInputStream mixedStream = new AudioInputStream(new ByteArrayInputStream(result), audioFormat, result.length);
 
         logger.info(String.format("mixedStream size: %s", mixedStream.available()));
 
@@ -209,7 +215,7 @@ public final class AudioUtils {
         logger.info(String.format("output file size: %s", output.length()));
     }
 
-    // Convert two bytes to a 16-bit signed sample
+    // Convert two bytes to a 16-bit signed sample in bigEndian model
     public static short getSample(byte lower, byte upper) {
         return (short) ((lower << 8) | (upper & 0xFF));
     }
