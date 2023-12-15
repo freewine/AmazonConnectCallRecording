@@ -10,6 +10,7 @@ dependencies {
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
     implementation 'com.amazonaws:aws-lambda-java-events:3.11.4'
     implementation 'com.amazonaws:aws-java-sdk-s3:1.12.609'
+    implementation 'software.amazon.awssdk:dynamodb:2.21.29'
     implementation 'com.amazonaws:amazon-kinesis-video-streams-parser-library:1.2.5'
     implementation 'com.amazonaws:aws-lambda-java-log4j2:1.5.1'
     implementation 'org.slf4j:slf4j-simple:2.0.9'

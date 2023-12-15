@@ -4,6 +4,7 @@
     "ContactData": {
       "Attributes": {
         "agentId": "15dfe8b3-ae38-4a8e-9778-7b20487cac16",
+        "recordingAuth": 3,
         "transcribeVoicemail": "true",
         "saveCallRecording": "true",
         "extensionNumber": "1",

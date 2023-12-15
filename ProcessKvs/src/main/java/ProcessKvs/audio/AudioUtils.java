@@ -31,6 +31,7 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,6 +60,11 @@ public final class AudioUtils {
     public static final int CHANNEL_MONO = 1;
     public static final int CHANNEL_STEREO = 2;
 
+    public static final int AUTH_AUDIO_NONE = 0;
+    public static final int AUTH_AUDIO_FROM_CUSTOMER = 1;
+    public static final int AUTH_AUDIO_TO_CUSTOMER = 2;
+    public static final int AUTH_AUDIO_MIXED = 3;
+
     private static final Logger logger = LoggerFactory.getLogger(AudioUtils.class);
 
     /**
@@ -81,10 +87,10 @@ public final class AudioUtils {
      * @param audioFilePath
      * @param awsCredentials
      */
-    public static S3UploadInfo uploadRawAudio(Regions region, String bucketName, String keyPrefix, String audioFilePath,
-                                              String contactId, boolean publicReadAcl,
-                                              AWSCredentialsProvider awsCredentials, int channels) {
-        File wavFile = null;
+    public static S3UploadInfo uploadAudio(Regions region, String bucketName, String keyPrefix, String audioFilePath,
+                                           String contactId, boolean publicReadAcl,
+                                           AWSCredentialsProvider awsCredentials) {
+        File wavFile = new File(audioFilePath);
         S3UploadInfo uploadInfo = null;
 
         try {
@@ -93,13 +99,6 @@ public final class AudioUtils {
                     .withRegion(region)
                     .withCredentials(awsCredentials)
                     .build();
-
-            //only channel mono need convert
-            if(channels == CHANNEL_MONO) {
-                wavFile = convertToWav(audioFilePath, channels);
-            }else {
-                wavFile = new File(audioFilePath);
-            }
 
             // upload the raw audio file to the designated S3 location
             String objectKey = keyPrefix + wavFile.getName();
@@ -123,8 +122,6 @@ public final class AudioUtils {
         } catch (SdkClientException e) {
             logger.error("Audio upload to S3 failed: ", e);
             throw e;
-        } catch (UnsupportedAudioFileException|IOException e) {
-            logger.error("Failed to convert to wav: ", e);
         } finally {
             if (wavFile != null) {
                 //wavFile.delete();
@@ -132,5 +129,88 @@ public final class AudioUtils {
         }
 
         return uploadInfo;
+    }
+
+
+
+    public static File MixAudio(String fromCustomer, String toCustomer, String contactId) {
+        long unixTime = System.currentTimeMillis() / 1000L;
+        File output = new File(String.format("/tmp/%s_mixed_%s.wav", contactId, unixTime));
+        try {
+
+            File fromCustomerFile = new File(fromCustomer.replace(".raw", ".wav"));
+            File toCustomerFile = new File(toCustomer.replace(".raw", ".wav"));
+
+            logger.info(String.format("file size: %s --- %s", fromCustomerFile.length(), toCustomerFile.length()));
+
+            AudioInputStream from = AudioSystem.getAudioInputStream(fromCustomerFile);
+            AudioInputStream to = AudioSystem.getAudioInputStream(toCustomerFile);
+
+            mixSamples(from, to, output, contactId);
+
+            // Close streams
+            from.close();
+            to.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return output;
+    }
+
+
+    // Mix two 16-bit signed samples into one
+    public static void mixSamples(AudioInputStream from, AudioInputStream to, File output, String contactId) throws IOException {
+        AudioFormat format = from.getFormat();
+        int frameSize = format.getFrameSize();
+        int sampleSizeInBits = format.getSampleSizeInBits();
+        int size = from.available();
+
+        byte[] data1 = new byte[size];
+        byte[] data2 = new byte[size];
+
+        int data1Len = from.read(data1);
+        int data2Len = to.read(data2);
+
+        byte[] result = new byte[size];
+
+        // Mix frame sample-by-sample
+        for (int i = 0; i < data1.length; i += frameSize) {
+            int mixedSample;
+            // Assume 16-bit samples
+            short sample1, sample2;
+            // Convert bytes to 16-bit sample
+            sample1 = getSample(data1[i], data1[i + 1]);
+
+            sample2 = getSample(data2[i], data2[i + 1]);
+
+            // Mix samples
+            mixedSample = sample1 + sample2;
+
+            // Clip if outside 16-bit range
+            // enforce min and max (may introduce clipping)
+            mixedSample = Math.min(Short.MAX_VALUE, mixedSample);
+            mixedSample = Math.max(Short.MIN_VALUE, mixedSample);
+
+            // Convert back to bytes
+            result[i] = (byte) (mixedSample >> 8);
+            result[i + 1] = (byte) (mixedSample & 0xFF);
+        }
+
+        AudioInputStream mixedStream = new AudioInputStream(new ByteArrayInputStream(result), format, result.length);
+
+
+        logger.info(String.format("mixedStream size: %s", mixedStream.available()));
+
+        // Write mixed audio data to output file
+        AudioSystem.write(mixedStream, AudioFileFormat.Type.WAVE, output);
+
+        logger.info(String.format("output file size: %s", output.length()));
+    }
+
+    // Convert two bytes to a 16-bit signed sample
+    public static short getSample(byte lower, byte upper) {
+        return (short) ((lower << 8) | (upper & 0xFF));
     }
 }

@@ -61,6 +61,7 @@ public class ConnectKvsEvent implements Serializable, Cloneable {
         private String previousContactId;
         private String queue;
         private SystemEndpoint systemEndpoint;
+        private String awsRegion;
         private String languageCode;
         private MediaStreams mediaStreams;
     }
