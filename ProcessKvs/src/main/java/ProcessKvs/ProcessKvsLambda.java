@@ -2,16 +2,14 @@ package ProcessKvs;
 
 import ProcessKvs.audio.AudioStreamService;
 import ProcessKvs.audio.AudioUtils;
-import ProcessKvs.model.ConnectKvsEvent;
-import ProcessKvs.model.RecordingData;
-import ProcessKvs.model.ResultData;
+import ProcessKvs.model.*;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.DateTime;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
@@ -19,86 +17,91 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
 /**
  * Handler for requests to Lambda function.
  */
-public class ProcessKvsLambda implements RequestStreamHandler {
+public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
     private static final Regions REGION = Regions.fromName(System.getenv("REGION"));
     private static final String DDB_TABLE = System.getenv("DDB_TABLE");
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(ProcessKvsLambda.class);
 
     @Override
-    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
-        System.out.println("Processing Connect Event");
+    public String handleRequest(KinesisEvent kinesisEvent, Context context) {
+        System.out.println("Processing CTR Event");
 
-        //Configure ObjectMapper
-        objectMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-        ConnectKvsEvent event = objectMapper.readValue(inputStream, ConnectKvsEvent.class);
+        for (KinesisEvent.KinesisEventRecord record : kinesisEvent.getRecords()) {
+            try {
+                String recordData = new String(record.getKinesis().getData().array());
+                System.out.println("Record Data: " + recordData);
+                this.processData(recordData);
+            } catch (Exception e) {
+                // if json does not contain required data, will exit early
+                System.out.println(e.toString());
+            }
+        }
+
+        return "{ \"result\": \"Success\" }";
+    }
+
+    private boolean processData(String data) {
+        JSONObject json = new JSONObject(data);
+        ContactTraceRecord traceRecord = new ContactTraceRecord(json);
+        List<KVStreamRecordingData> recordings = traceRecord.getRecordings();
+
+        if (recordings.isEmpty()) {
+            logger.info("No Voice recording, skipped");
+            return false;
+        }
+
+        if (traceRecord.getAttributes().getRecordingAuth() == -1) {
+            logger.info("No valid recordingAuth, skipped");
+            return false;
+        }
+
+        KVStreamRecordingData streamRecordingData = recordings.get(0);
+        // Begin processing audio stream
+        AudioStreamService streamingService = new AudioStreamService();
 
         //System.out.println(event);
-        RecordingData recording = parseEvent(event);
+        RecordingData recordingData = parseEvent(traceRecord, streamRecordingData);
 
-        ResultData outData = new ResultData();
-        if (recording.getRecordingAuth() <= AudioUtils.AUTH_AUDIO_NONE) {
-            outData.setSuccess("false");
-            outData.setMessage("Recording is not authorized");
-
-            saveToDdb(recording);
-            objectMapper.writeValue(outputStream, outData); //write to the outputStream what you want to return
-            return;
-        }
-
-
-        AudioStreamService streamingService = new AudioStreamService();
         try {
-            streamingService.processAudioStream(recording);
+            if (recordingData.getRecordingAuth() <= AudioUtils.AUTH_AUDIO_NONE) {
+                logger.info("Recording is not authorized");
+                saveToDdb(recordingData);
+                return false;
+            }
+            streamingService.processAudioStream(recordingData);
+            saveToDdb(recordingData);
+            return true;
         } catch (Exception e) {
-            logger.error("Process KVS Streaming failed with: ", e);
+            logger.error("KVS to Transcribe Streaming failed with: ", e);
+            return false;
         }
 
-        saveToDdb(recording);
-
-        outData.setSuccess("true");
-        outData.setMessage("Recording uploaded");
-        objectMapper.writeValue(outputStream, outData); //write to the outputStream what you want to return
     }
 
-    /**
-     * converts an input stream to a string
-     * @param inputStream InputStream object
-     * @return String with stream contents
-     */
-    public static String convertStreamToString(InputStream inputStream) {
-        Scanner s = new Scanner(inputStream).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
-    }
-
-    private RecordingData parseEvent(ConnectKvsEvent event) {
-        ConnectKvsEvent.ContactData contactData = event.getDetails().getContactData();
-        ConnectKvsEvent.Audio audio = contactData.getMediaStreams().getCustomer().getAudio();
+    private RecordingData parseEvent(ContactTraceRecord traceRecord, KVStreamRecordingData recording) {
 
         return RecordingData.builder()
-                .withAwsRegion(contactData.getAwsRegion())
-                .withRecordingAuth(contactData.getAttributes().get("recordingAuth") == null ? 0 : Integer.parseInt(contactData.getAttributes().get("recordingAuth")))
-                .withContactId(contactData.getContactId())
-                .withCustomerNumber(contactData.getCustomerEndpoint().getAddress())
-                .withLanguageCode(contactData.getLanguageCode())
-                .withAgentName(contactData.getAttributes().get("agentName"))
-                .withStreamARN(audio.getStreamARN())
-                .withStartFragmentNum(audio.getStartFragmentNumber())
-                .withStartTimestamp(audio.getStartTimestamp())
-                .withStopFragmentNumber(audio.getStopFragmentNumber())
-                .withStopTimestamp(audio.getStopTimestamp())
+                .withAwsRegion(REGION.getName())
+                .withRecordingAuth(traceRecord.getAttributes().getRecordingAuth())
+                .withContactId(traceRecord.getContactId())
+                .withCustomerNumber(traceRecord.getCustomerEndpoint().getAddress())
+                .withLanguageCode(traceRecord.getAttributes().getLanguageCode().orElse(""))
+                //.withAgentName(traceRecord.getAttributes().getAgentName())
+                .withStreamARN(recording.getLocation())
+                .withStartFragmentNum(recording.getFragmentStartNumber())
+                .withStartTimestamp(recording.getStartTimestamp())
+                .withStopFragmentNumber(recording.getFragmentStopNumber())
+                .withStopTimestamp(recording.getStopTimestamp())
                 .withDateTime(new DateTime())
                 .build();
     }
