@@ -164,15 +164,13 @@ public final class AudioUtils {
     public static void mixSamples(AudioInputStream from, AudioInputStream to, File output, String contactId) throws IOException {
         AudioFormat format = from.getFormat();
         int frameSize = format.getFrameSize();
-        int sampleSizeInBits = format.getSampleSizeInBits();
         int size = from.available();
 
-        byte[] result = new byte[size];
+        byte[] result = new byte[size*2];
 
         // Mix frame sample-by-sample
         for (int i = 0; i < size; i += frameSize) {
-            int mixedSample;
-            // Assume 16-bit samples
+            //16-bit samples
             short sample1, sample2;
 
             byte[] data1 = new byte[frameSize];
@@ -191,20 +189,14 @@ public final class AudioUtils {
 
             sample2 = getSample(data2[0], data2[1]);
 
-            // Mix samples
-            mixedSample = sample1 + sample2;
-
-            // Clip if outside 16-bit range
-            // enforce min and max (may introduce clipping)
-            mixedSample = Math.min(Short.MAX_VALUE, mixedSample);
-            mixedSample = Math.max(Short.MIN_VALUE, mixedSample);
-
-            // Convert back to bytes in bigEndian model
-            result[i] = (byte) (mixedSample >> 8);
-            result[i + 1] = (byte) (mixedSample & 0xFF);
+            // Convert back to bytes in bigEndian model, and mix data to stereo
+            result[i*2] = (byte) (sample1 >> 8);
+            result[i*2 + 1] = (byte) (sample1 & 0xFF);
+            result[i*2 + 2] = (byte) (sample2 >> 8);
+            result[i*2 + 3] = (byte) (sample2 & 0xFF);
         }
 
-        AudioFormat audioFormat = new AudioFormat(8000, 16, CHANNEL_MONO, true, false);
+        AudioFormat audioFormat = new AudioFormat(8000, 16, CHANNEL_STEREO, true, false);
         AudioInputStream mixedStream = new AudioInputStream(new ByteArrayInputStream(result), audioFormat, result.length);
 
         logger.info(String.format("mixedStream size: %s", mixedStream.available()));
@@ -213,6 +205,8 @@ public final class AudioUtils {
         AudioSystem.write(mixedStream, AudioFileFormat.Type.WAVE, output);
 
         logger.info(String.format("output file size: %s", output.length()));
+
+        mixedStream.close();
     }
 
     // Convert two bytes to a 16-bit signed sample in bigEndian model
