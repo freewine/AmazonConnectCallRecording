@@ -46,6 +46,7 @@ public class AudioStreamService {
     private static final String RECORDINGS_KEY_PREFIX = System.getenv("RECORDINGS_KEY_PREFIX");
     private static final boolean RECORDINGS_PUBLIC_READ_ACL = Boolean.parseBoolean(System.getenv("RECORDINGS_PUBLIC_READ_ACL"));
     private static final String START_SELECTOR_TYPE = System.getenv("START_SELECTOR_TYPE");
+    private static final String CLOUDFRONT_DOMAIN = System.getenv("CLOUDFRONT_DOMAIN");
     private static final Logger logger = LoggerFactory.getLogger(AudioStreamService.class);
 
 
@@ -62,8 +63,8 @@ public class AudioStreamService {
         logger.info(String.format("StreamARN=%s, startFragmentNum=%s, contactId=%s", streamARN, startFragmentNum, contactId));
 
         long unixTime = System.currentTimeMillis() / 1000L;
-        Path saveAudioFilePathFromCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName().toLowerCase() + "_" + unixTime + ".raw");
-        Path saveAudioFilePathToCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName().toLowerCase() + "_" + +unixTime + ".raw");
+        Path saveAudioFilePathFromCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName().toLowerCase()/* + "_" + unixTime*/ + ".raw");
+        Path saveAudioFilePathToCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName().toLowerCase()/* + "_" + +unixTime*/ + ".raw");
         System.out.println(String.format("Save Path From Customer: %s, Save Path To Customer: %s Start Selector Type: %s", saveAudioFilePathFromCustomer, saveAudioFilePathToCustomer, START_SELECTOR_TYPE));
         FileOutputStream outStreamFromCustomer = new FileOutputStream(saveAudioFilePathFromCustomer.toString());
         FileOutputStream outStreamToCustomer = new FileOutputStream(saveAudioFilePathToCustomer.toString());
@@ -160,10 +161,10 @@ public class AudioStreamService {
                     S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
                             wavFile.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
                     if (k.equals(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName())) {
-                        recording.setAudioFromCustomer(uploadInfo.getResourceUrl());
+                        recording.setAudioFromCustomer(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
                     }
                     if (k.equals(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName())) {
-                        recording.setAudioToCustomer(uploadInfo.getResourceUrl());
+                        recording.setAudioToCustomer(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
                     }
                 } else {
                     logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + wavFile.toString());
@@ -180,7 +181,7 @@ public class AudioStreamService {
                 S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
                         all.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
 
-                recording.setAudioMixed(uploadInfo.getResourceUrl());
+                recording.setAudioMixed(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
             } else {
                 logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + all);
             }

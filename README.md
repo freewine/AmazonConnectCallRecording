@@ -31,6 +31,7 @@ Policies:
     - AmazonDynamoDBFullAccess
     - AmazonS3FullAccess
     - AmazonKinesisVideoStreamsReadOnlyAccess
+    - AmazonKinesisReadOnlyAccess
 ```
 
 ## Lambda Environment variables
@@ -44,6 +45,7 @@ Environment: # More info about Env Vars: https://github.com/awslabs/serverless-a
         RECORDINGS_KEY_PREFIX: recordings/
         START_SELECTOR_TYPE: FRAGMENT_NUMBER
         DDB_TABLE: ConnectCallRecording
+        CLOUDFRONT_DOMAIN: https://xxxxxxxx.cloudfront.net
 ```
 
 ## Deploy the application

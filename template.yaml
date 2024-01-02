@@ -33,6 +33,7 @@ Resources:
           RECORDINGS_KEY_PREFIX: recordings/
           START_SELECTOR_TYPE: FRAGMENT_NUMBER
           DDB_TABLE: ConnectCallRecording
+          CLOUDFRONT_DOMAIN: https://xxxxxxxx.cloudfront.net
 
 Outputs:
   ProcessKvsRecording:

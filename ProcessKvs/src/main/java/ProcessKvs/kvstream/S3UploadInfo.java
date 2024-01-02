@@ -31,6 +31,10 @@ public class S3UploadInfo {
         return String.format("https://s3-%s.amazonaws.com/%s/%s", region.getName(), bucketName, objectKey);
     }
 
+    public String getCloudfrontUrl(String cloudftont) {
+        return String.format("%s/%s", cloudftont, objectKey);
+    }
+
     String getBucketName() {
         return bucketName;
     }

@@ -134,8 +134,8 @@ public final class AudioUtils {
 
 
     public static File MixAudio(String fromCustomer, String toCustomer, String contactId) {
-        long unixTime = System.currentTimeMillis() / 1000L;
-        File output = new File(String.format("/tmp/%s_mixed_%s.wav", contactId, unixTime));
+        //long unixTime = System.currentTimeMillis() / 1000L;
+        File output = new File(String.format("/tmp/%s_audio_mixed.wav", contactId/*, unixTime*/));
         try {
 
             File fromCustomerFile = new File(fromCustomer.replace(".raw", ".wav"));
