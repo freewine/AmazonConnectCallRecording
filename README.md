@@ -1,11 +1,18 @@
 # ProcessKvsRecording
 
+This lambda demonstrates how to process Amazon connect call recording saving in Kinesis Video Streams(KVS). The architecture diagram is as follows.
+
+![architecture](architecture.png)
+
+The call recording is stored in KVS, the lambda parse CTR(which include KVS audio information), read audio streams and store it to Amazon S3. 
+
 This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
 
 - ProcessKvs/src/main - Code for the application's Lambda function.
 - events - Invocation events that you can use to invoke the function.
 - ProcessKvs/src/test - Unit tests for the application code. 
 - template.yaml - A template that defines the application's AWS resources.
+- SampleFlows/Demo Call forward Recording - Sample Amazon Connect flow.
 
 The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
 
