@@ -29,6 +29,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -57,20 +58,8 @@ import static com.amazonaws.util.StringUtils.isNullOrEmpty;
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 public final class KVSUtils {
-    public enum TrackName {
-        AUDIO_FROM_CUSTOMER("AUDIO_FROM_CUSTOMER"),
-        AUDIO_TO_CUSTOMER("AUDIO_TO_CUSTOMER");
-
-        private String name;
-
-        TrackName(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
-    }
+    public static final String AUDIO_FROM_CUSTOMER = "AUDIO_FROM_CUSTOMER";
+    public static final String AUDIO_TO_CUSTOMER = "AUDIO_TO_CUSTOMER";
 
     private static final Logger logger = LoggerFactory.getLogger(KVSUtils.class);
 
@@ -136,11 +125,11 @@ public final class KVSUtils {
                     ByteBuffer audioBuffer = frame.getFrameData();
                     long trackNumber = frame.getTrackNumber();
                     MkvTrackMetadata metadata = fragmentVisitor.getMkvTrackMetadata(trackNumber);
-                    if (TrackName.AUDIO_FROM_CUSTOMER.getName().equals(metadata.getTrackName())) {
-                        bufferMap.put(TrackName.AUDIO_FROM_CUSTOMER.getName(), audioBuffer);
+                    if (AUDIO_FROM_CUSTOMER.equals(metadata.getTrackName())) {
+                        bufferMap.put(AUDIO_FROM_CUSTOMER, audioBuffer);
                         return bufferMap;
-                    } else if (TrackName.AUDIO_TO_CUSTOMER.getName().equals(metadata.getTrackName())) {
-                        bufferMap.put(TrackName.AUDIO_TO_CUSTOMER.getName(), audioBuffer);
+                    } else if (AUDIO_TO_CUSTOMER.equals(metadata.getTrackName())) {
+                        bufferMap.put(AUDIO_TO_CUSTOMER, audioBuffer);
                         return bufferMap;
                     }
                 }
@@ -207,5 +196,16 @@ public final class KVSUtils {
                 getMediaResult.getSdkResponseMetadata().getRequestId());
 
         return getMediaResult.getPayload();
+    }
+
+    public static void deleteFile(String filePath)
+    {
+        File file = new File(filePath);
+
+        if(file.delete()) {
+            System.out.println("File deleted successfully: " + filePath);
+        } else {
+            System.out.println("Failed to delete the file: " + filePath);
+        }
     }
 }

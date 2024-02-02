@@ -3,13 +3,13 @@
  *  Licensed under the Apache License Version 2.0 (the 'License'). You may not
  *  use this file except in compliance with the License. A copy of the License
  *  is located at                                                            
- *                                                                              
+ *
  *      http://www.apache.org/licenses/                                        
  *  or in the 'license' file accompanying this file. This file is distributed on
  *  an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or
  *  implied. See the License for the specific language governing permissions and
  *  limitations under the License.                                              
-******************************************************************************/
+ ******************************************************************************/
 
 package ProcessKvs.audio;
 
@@ -41,7 +41,7 @@ import java.nio.file.Paths;
  * Utility class to download/upload audio files from/to S3
  *
  * <p>Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.</p>
- *
+ * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify,
@@ -95,7 +95,7 @@ public final class AudioUtils {
 
         try {
 
-            AmazonS3Client s3Client = (AmazonS3Client)AmazonS3ClientBuilder.standard()
+            AmazonS3Client s3Client = (AmazonS3Client) AmazonS3ClientBuilder.standard()
                     .withRegion(region)
                     .withCredentials(awsCredentials)
                     .build();
@@ -132,21 +132,20 @@ public final class AudioUtils {
     }
 
 
-
     public static File MixAudio(String fromCustomer, String toCustomer, String contactId) {
         //long unixTime = System.currentTimeMillis() / 1000L;
         File output = new File(String.format("/tmp/%s_audio_mixed.wav", contactId/*, unixTime*/));
         try {
 
-            File fromCustomerFile = new File(fromCustomer.replace(".raw", ".wav"));
-            File toCustomerFile = new File(toCustomer.replace(".raw", ".wav"));
+            File fromCustomerFile = new File(fromCustomer);
+            File toCustomerFile = new File(toCustomer);
 
             logger.info(String.format("file size: %s --- %s", fromCustomerFile.length(), toCustomerFile.length()));
 
             AudioInputStream from = AudioSystem.getAudioInputStream(fromCustomerFile);
             AudioInputStream to = AudioSystem.getAudioInputStream(toCustomerFile);
 
-            mixSamples(from, to, output, contactId);
+            mixSamples(from, to, output);
 
             // Close streams
             from.close();
@@ -165,12 +164,12 @@ public final class AudioUtils {
      * The audio to customer is stored in the right channel.
      * The audio from customer is stored in the left channel.
      */
-    public static void mixSamples(AudioInputStream from, AudioInputStream to, File output, String contactId) throws IOException {
+    public static void mixSamples(AudioInputStream from, AudioInputStream to, File output) throws IOException {
         AudioFormat format = from.getFormat();
         int frameSize = format.getFrameSize();
         int size = from.available();
 
-        byte[] result = new byte[size*2];
+        byte[] result = new byte[size * 2];
 
         // Mix frame sample-by-sample
         for (int i = 0; i < size; i += frameSize) {
@@ -183,8 +182,7 @@ public final class AudioUtils {
             int data1Len = from.read(data1);
             int data2Len = to.read(data2);
 
-            if(data1Len <= 0 || data2Len <= 0)
-            {
+            if (data1Len <= 0 || data2Len <= 0) {
                 break;
             }
 
@@ -194,10 +192,10 @@ public final class AudioUtils {
             sample2 = getSample(data2[0], data2[1]);
 
             // Convert back to bytes in bigEndian model, and mix data to stereo
-            result[i*2] = (byte) (sample1 >> 8);
-            result[i*2 + 1] = (byte) (sample1 & 0xFF);
-            result[i*2 + 2] = (byte) (sample2 >> 8);
-            result[i*2 + 3] = (byte) (sample2 & 0xFF);
+            result[i * 2] = (byte) (sample1 >> 8);
+            result[i * 2 + 1] = (byte) (sample1 & 0xFF);
+            result[i * 2 + 2] = (byte) (sample2 >> 8);
+            result[i * 2 + 3] = (byte) (sample2 & 0xFF);
         }
 
         AudioFormat audioFormat = new AudioFormat(8000, 16, CHANNEL_STEREO, true, false);

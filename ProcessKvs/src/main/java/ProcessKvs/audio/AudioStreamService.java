@@ -25,10 +25,6 @@ import com.amazonaws.regions.Regions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
@@ -62,8 +58,8 @@ public class AudioStreamService {
         logger.info(String.format("StreamARN=%s, startFragmentNum=%s, contactId=%s", streamARN, startFragmentNum, contactId));
 
         long unixTime = System.currentTimeMillis() / 1000L;
-        Path saveAudioFilePathFromCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName().toLowerCase()/* + "_" + unixTime*/ + ".raw");
-        Path saveAudioFilePathToCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName().toLowerCase()/* + "_" + +unixTime*/ + ".raw");
+        Path saveAudioFilePathFromCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.AUDIO_FROM_CUSTOMER.toLowerCase()/* + "_" + unixTime*/ + ".raw");
+        Path saveAudioFilePathToCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.AUDIO_TO_CUSTOMER.toLowerCase()/* + "_" + +unixTime*/ + ".raw");
         logger.info(String.format("Save Path From Customer: %s, Save Path To Customer: %s Start Selector Type: %s", saveAudioFilePathFromCustomer, saveAudioFilePathToCustomer, START_SELECTOR_TYPE));
         FileOutputStream outStreamFromCustomer = new FileOutputStream(saveAudioFilePathFromCustomer.toString());
         FileOutputStream outStreamToCustomer = new FileOutputStream(saveAudioFilePathToCustomer.toString());
@@ -83,18 +79,18 @@ public class AudioStreamService {
 
             Map<String, ByteBuffer> bufferMap = KVSUtils.getByteBufferFromStream(streamingMkvReader, fragmentVisitor, tagProcessor, contactId);
             while (!bufferMap.isEmpty()) {
-                if (bufferMap.containsKey(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName())) {
+                if (bufferMap.containsKey(KVSUtils.AUDIO_FROM_CUSTOMER)) {
                     // Write audio bytes from the KVS stream to the temporary file
-                    ByteBuffer audioBuffer = bufferMap.get(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName());
+                    ByteBuffer audioBuffer = bufferMap.get(KVSUtils.AUDIO_FROM_CUSTOMER);
 
                     byte[] audioBytes = new byte[audioBuffer.remaining()];
                     audioBuffer.get(audioBytes);
                     outStreamFromCustomer.write(audioBytes);
 
                     bAudioFromCustomer = true;
-                } else if (bufferMap.containsKey(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName())) {
+                } else if (bufferMap.containsKey(KVSUtils.AUDIO_TO_CUSTOMER)) {
                     // Write audio bytes from the KVS stream to the temporary file
-                    ByteBuffer audioBuffer = bufferMap.get(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName());
+                    ByteBuffer audioBuffer = bufferMap.get(KVSUtils.AUDIO_TO_CUSTOMER);
 
                     byte[] audioBytes = new byte[audioBuffer.remaining()];
                     audioBuffer.get(audioBytes);
@@ -113,13 +109,32 @@ public class AudioStreamService {
 
             Map<String, String> mapAudio = new HashMap<>();
             if (bAudioFromCustomer) {
-                mapAudio.put(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName(), saveAudioFilePathFromCustomer.toString());
-            }
-            if (bAudioToCustomer) {
-                mapAudio.put(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName(), saveAudioFilePathToCustomer.toString());
+                File wavFile;
+                // Convert audio from raw to wav format, then delete raw file
+                try {
+                    wavFile = AudioUtils.convertToWav(saveAudioFilePathFromCustomer.toString(), AudioUtils.CHANNEL_MONO);
+                } catch (IOException | UnsupportedAudioFileException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    KVSUtils.deleteFile(saveAudioFilePathFromCustomer.toString());
+                }
+                mapAudio.put(KVSUtils.AUDIO_FROM_CUSTOMER, wavFile.toString());
             }
 
-            uploadAudioAndSaveToDdb(recording, mapAudio, unixTime);
+            if (bAudioToCustomer) {
+                File wavFile;
+                // Convert audio from raw to wav format
+                try {
+                    wavFile = AudioUtils.convertToWav(saveAudioFilePathToCustomer.toString(), AudioUtils.CHANNEL_MONO);
+                } catch (IOException | UnsupportedAudioFileException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    KVSUtils.deleteFile(saveAudioFilePathToCustomer.toString());
+                }
+                mapAudio.put(KVSUtils.AUDIO_TO_CUSTOMER, wavFile.toString());
+            }
+
+            uploadAudioToS3(recording, mapAudio, unixTime);
         }
 
     }
@@ -133,58 +148,57 @@ public class AudioStreamService {
      * @param unixTime
      * @throws IOException
      */
-    private void uploadAudioAndSaveToDdb(RecordingData recording, Map<String, String> mapAudio,
-                                         long unixTime) throws IOException {
+    private void uploadAudioToS3(RecordingData recording, Map<String, String> mapAudio,
+                                 long unixTime) throws IOException {
         mapAudio.forEach((k, v) -> {
-            File wavFile;
+            File wavFile = new File(v);
             boolean bAuth = false;
             logger.info(String.format("File: %s, size: %d", k, new File(v).length()));
 
-
-            if (k.equals(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName()) && (recording.getRecordingAuth() & AudioUtils.AUTH_AUDIO_FROM_CUSTOMER) == AudioUtils.AUTH_AUDIO_FROM_CUSTOMER) {
+            if (k.equals(KVSUtils.AUDIO_FROM_CUSTOMER) && (recording.getRecordingAuth() & AudioUtils.AUTH_AUDIO_FROM_CUSTOMER) == AudioUtils.AUTH_AUDIO_FROM_CUSTOMER) {
                 bAuth = true;
-            } else if (k.equals(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName()) && (recording.getRecordingAuth() & AudioUtils.AUTH_AUDIO_TO_CUSTOMER) == AudioUtils.AUTH_AUDIO_TO_CUSTOMER) {
+            } else if (k.equals(KVSUtils.AUDIO_TO_CUSTOMER) && (recording.getRecordingAuth() & AudioUtils.AUTH_AUDIO_TO_CUSTOMER) == AudioUtils.AUTH_AUDIO_TO_CUSTOMER) {
                 bAuth = true;
             }
 
             if (bAuth) {
-                try {
-                    wavFile = AudioUtils.convertToWav(v, AudioUtils.CHANNEL_MONO);
-
-                } catch (IOException | UnsupportedAudioFileException e) {
-                    throw new RuntimeException(e);
-                }
-
                 // Upload the Raw Audio file to S3
                 if (wavFile.length() > 0) {
                     S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
                             wavFile.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
-                    if (k.equals(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName())) {
+                    if (k.equals(KVSUtils.AUDIO_FROM_CUSTOMER)) {
                         recording.setAudioFromCustomer(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
                     }
-                    if (k.equals(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName())) {
+                    if (k.equals(KVSUtils.AUDIO_TO_CUSTOMER)) {
                         recording.setAudioToCustomer(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
                     }
                 } else {
-                    logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + wavFile.toString());
+                    logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + wavFile);
                 }
             }
         });
 
-        if (mapAudio.containsKey(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName())
-                && mapAudio.containsKey(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName())
+        if (mapAudio.containsKey(KVSUtils.AUDIO_FROM_CUSTOMER)
+                && mapAudio.containsKey(KVSUtils.AUDIO_TO_CUSTOMER)
                 && recording.getRecordingAuth() == AudioUtils.AUTH_AUDIO_MIXED) {
-            File all = AudioUtils.MixAudio(mapAudio.get(KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName()), mapAudio.get(KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName()), recording.getContactId());
+            File mixed = AudioUtils.MixAudio(mapAudio.get(KVSUtils.AUDIO_FROM_CUSTOMER), mapAudio.get(KVSUtils.AUDIO_TO_CUSTOMER), recording.getContactId());
             // Upload the Raw Audio file to S3
-            if (all.length() > 0) {
+            if (mixed.length() > 0) {
                 S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
-                        all.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
+                        mixed.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
 
                 recording.setAudioMixed(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
             } else {
-                logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + all);
+                logger.info("Skipping upload to S3.  saveCallRecording was disabled or audio file has 0 bytes: " + mixed);
             }
+
+            KVSUtils.deleteFile(mixed.toString());
         }
+
+        //delete audio files
+        mapAudio.forEach((k, v) -> {
+            KVSUtils.deleteFile(v);
+        });
     }
 
     /**

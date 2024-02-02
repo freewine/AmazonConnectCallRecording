@@ -103,6 +103,8 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
                 continue;
             }
 
+            logger.info("Recording StorageType is KINESIS_VIDEO_STREAM, recording processing started");
+
             //System.out.println(event);
             RecordingData recordingData = parseEvent(traceRecord, recording);
 
@@ -140,6 +142,9 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
             } catch (Exception e) {
                 logger.error("KVS processing failed with: ", e);
             }
+
+            logger.info("recording processing finished");
+
         }
         //updateConnectContactAttributes(traceRecord, connectAttributes);
     }

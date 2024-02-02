@@ -20,6 +20,7 @@ Resources:
       Architectures:
         - x86_64
       MemorySize: 512
+      Timeout: 300
       Policies:
         - AmazonDynamoDBFullAccess
         - AmazonS3FullAccess
@@ -39,7 +40,7 @@ Resources:
           RECORDINGS_KEY_PREFIX: recordings/
           START_SELECTOR_TYPE: FRAGMENT_NUMBER
           DDB_TABLE: ConnectCallRecording
-          CLOUDFRONT_DOMAIN: https://d2i9chbrhts7m7.cloudfront.net
+          CLOUDFRONT_DOMAIN: https://xxxxxxxxx.cloudfront.net
 
 Outputs:
   ProcessKvsRecording:
