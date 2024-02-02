@@ -15,6 +15,8 @@ public class RecordingData {
 
     private int recordingAuth = 0; //0: no recording, 1: recording from customer, 2: recording to customer, 3: ALL
 
+    private String instanceARN;
+    private String initialContactId;
     private String contactId;
     private String customerNumber;
     private String languageCode;

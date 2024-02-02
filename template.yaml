@@ -25,6 +25,12 @@ Resources:
         - AmazonS3FullAccess
         - AmazonKinesisVideoStreamsReadOnlyAccess
         - AmazonKinesisReadOnlyAccess
+        - Statement:
+          - Sid: UpdateAmazonConnectContactAttributes
+            Effect: Allow
+            Action:
+              - connect:UpdateContactAttributes
+            Resource: !Sub 'arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/0986d350-0ebf-46ed-8c88-db4b40e93690/contact/*'
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
@@ -33,7 +39,7 @@ Resources:
           RECORDINGS_KEY_PREFIX: recordings/
           START_SELECTOR_TYPE: FRAGMENT_NUMBER
           DDB_TABLE: ConnectCallRecording
-          CLOUDFRONT_DOMAIN: https://xxxxxxxx.cloudfront.net
+          CLOUDFRONT_DOMAIN: https://d2i9chbrhts7m7.cloudfront.net
 
 Outputs:
   ProcessKvsRecording:

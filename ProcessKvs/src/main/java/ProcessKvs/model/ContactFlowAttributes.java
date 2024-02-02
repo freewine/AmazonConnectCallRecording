@@ -13,15 +13,18 @@
 
 package ProcessKvs.model;
 
+import lombok.Getter;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 
 import java.util.Optional;
 
+@Getter
 public class ContactFlowAttributes {
     private int recordingAuth = -1;
 
-    private Optional<String> languageCode;
+    //default "en-US"
+    private String languageCode = "en-US";
 
     public ContactFlowAttributes(JSONObject jsonObject) {
         if (jsonObject.has("recordingAuth")) {
@@ -29,18 +32,8 @@ public class ContactFlowAttributes {
         }
 
         if (jsonObject.has("languageCode")) {
-            this.languageCode = Optional.of(jsonObject.getString("languageCode"));
-        } else {
-            this.languageCode = Optional.of("en-US");
+            this.languageCode = jsonObject.getString("languageCode");
         }
-
     }
 
-    public Optional<String> getLanguageCode() {
-        return languageCode;
-    }
-
-    public int getRecordingAuth() {
-        return recordingAuth;
-    }
 }

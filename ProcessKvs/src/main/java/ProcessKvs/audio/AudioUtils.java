@@ -160,7 +160,11 @@ public final class AudioUtils {
     }
 
 
-    // Mix two 16-bit signed samples into one
+    /*
+     * Mix two 16-bit signed samples into one
+     * The audio to customer is stored in the right channel.
+     * The audio from customer is stored in the left channel.
+     */
     public static void mixSamples(AudioInputStream from, AudioInputStream to, File output, String contactId) throws IOException {
         AudioFormat format = from.getFormat();
         int frameSize = format.getFrameSize();

@@ -58,14 +58,13 @@ public class AudioStreamService {
         String startFragmentNum = recording.getStartFragmentNum();
         String contactId = recording.getContactId();
         String languageCode = recording.getLanguageCode();
-        Regions region = Regions.fromName(recording.getAwsRegion());
 
         logger.info(String.format("StreamARN=%s, startFragmentNum=%s, contactId=%s", streamARN, startFragmentNum, contactId));
 
         long unixTime = System.currentTimeMillis() / 1000L;
         Path saveAudioFilePathFromCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_FROM_CUSTOMER.getName().toLowerCase()/* + "_" + unixTime*/ + ".raw");
         Path saveAudioFilePathToCustomer = Paths.get("/tmp", contactId + "_" + KVSUtils.TrackName.AUDIO_TO_CUSTOMER.getName().toLowerCase()/* + "_" + +unixTime*/ + ".raw");
-        System.out.println(String.format("Save Path From Customer: %s, Save Path To Customer: %s Start Selector Type: %s", saveAudioFilePathFromCustomer, saveAudioFilePathToCustomer, START_SELECTOR_TYPE));
+        logger.info(String.format("Save Path From Customer: %s, Save Path To Customer: %s Start Selector Type: %s", saveAudioFilePathFromCustomer, saveAudioFilePathToCustomer, START_SELECTOR_TYPE));
         FileOutputStream outStreamFromCustomer = new FileOutputStream(saveAudioFilePathFromCustomer.toString());
         FileOutputStream outStreamToCustomer = new FileOutputStream(saveAudioFilePathToCustomer.toString());
         String streamName = streamARN.substring(streamARN.indexOf("/") + 1, streamARN.lastIndexOf("/"));

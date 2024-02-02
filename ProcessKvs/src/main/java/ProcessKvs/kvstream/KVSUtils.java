@@ -117,6 +117,8 @@ public final class KVSUtils {
                 MkvElement mkvElement = mkvElementOptional.get();
                 mkvElement.accept(fragmentVisitor);
 
+                //logger.error(mkvElement.getElementMetaData().toString());
+
                 // Validate that we are reading data only for the expected contactId at start of every mkv master element
                 if (MkvTypeInfos.EBML.equals(mkvElement.getElementMetaData().getTypeInfo())) {
                     if (mkvElement instanceof MkvStartMasterElement) {
@@ -134,7 +136,7 @@ public final class KVSUtils {
                     ByteBuffer audioBuffer = frame.getFrameData();
                     long trackNumber = frame.getTrackNumber();
                     MkvTrackMetadata metadata = fragmentVisitor.getMkvTrackMetadata(trackNumber);
-                    if (Strings.isNullOrEmpty(metadata.getTrackName()) || TrackName.AUDIO_FROM_CUSTOMER.getName().equals(metadata.getTrackName())) {
+                    if (TrackName.AUDIO_FROM_CUSTOMER.getName().equals(metadata.getTrackName())) {
                         bufferMap.put(TrackName.AUDIO_FROM_CUSTOMER.getName(), audioBuffer);
                         return bufferMap;
                     } else if (TrackName.AUDIO_TO_CUSTOMER.getName().equals(metadata.getTrackName())) {
