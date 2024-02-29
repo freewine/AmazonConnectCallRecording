@@ -17,6 +17,7 @@ public class RecordingData {
 
     private String instanceARN;
     private String initialContactId;
+    private String initiationTimestamp;
     private String contactId;
     private String customerNumber;
     private String languageCode;

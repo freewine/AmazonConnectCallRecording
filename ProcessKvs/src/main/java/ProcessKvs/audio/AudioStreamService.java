@@ -74,6 +74,8 @@ public class AudioStreamService {
         boolean bAudioFromCustomer = false;
         boolean bAudioToCustomer = false;
 
+        int toCustomerCount = 0;
+        int fromCustomerCount = 0;
         try {
             logger.info("Saving audio bytes to location");
 
@@ -83,6 +85,7 @@ public class AudioStreamService {
                     // Write audio bytes from the KVS stream to the temporary file
                     ByteBuffer audioBuffer = bufferMap.get(KVSUtils.AUDIO_FROM_CUSTOMER);
 
+                    fromCustomerCount += audioBuffer.remaining();
                     byte[] audioBytes = new byte[audioBuffer.remaining()];
                     audioBuffer.get(audioBytes);
                     outStreamFromCustomer.write(audioBytes);
@@ -91,6 +94,8 @@ public class AudioStreamService {
                 } else if (bufferMap.containsKey(KVSUtils.AUDIO_TO_CUSTOMER)) {
                     // Write audio bytes from the KVS stream to the temporary file
                     ByteBuffer audioBuffer = bufferMap.get(KVSUtils.AUDIO_TO_CUSTOMER);
+
+                    toCustomerCount += audioBuffer.remaining();
 
                     byte[] audioBytes = new byte[audioBuffer.remaining()];
                     audioBuffer.get(audioBytes);
@@ -101,6 +106,7 @@ public class AudioStreamService {
                 bufferMap = KVSUtils.getByteBufferFromStream(streamingMkvReader, fragmentVisitor, tagProcessor, contactId);
             }
         } finally {
+            logger.info(String.format("KVS raw data: audio from customer size: %d, audio to customer size: %d,", fromCustomerCount, toCustomerCount));
             logger.info(String.format("Closing file and upload raw audio for contactId: %s ... %s ... %s", contactId, saveAudioFilePathFromCustomer, saveAudioFilePathToCustomer));
 
             kvsInputStream.close();
@@ -164,7 +170,7 @@ public class AudioStreamService {
             if (bAuth) {
                 // Upload the Raw Audio file to S3
                 if (wavFile.length() > 0) {
-                    S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
+                    S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX, recording.getInitiationTimestamp(),
                             wavFile.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
                     if (k.equals(KVSUtils.AUDIO_FROM_CUSTOMER)) {
                         recording.setAudioFromCustomer(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));
@@ -181,10 +187,10 @@ public class AudioStreamService {
         if (mapAudio.containsKey(KVSUtils.AUDIO_FROM_CUSTOMER)
                 && mapAudio.containsKey(KVSUtils.AUDIO_TO_CUSTOMER)
                 && recording.getRecordingAuth() == AudioUtils.AUTH_AUDIO_MIXED) {
-            File mixed = AudioUtils.MixAudio(mapAudio.get(KVSUtils.AUDIO_FROM_CUSTOMER), mapAudio.get(KVSUtils.AUDIO_TO_CUSTOMER), recording.getContactId());
+            File mixed = AudioUtils.mixMonoAudios(mapAudio.get(KVSUtils.AUDIO_FROM_CUSTOMER), mapAudio.get(KVSUtils.AUDIO_TO_CUSTOMER), recording.getContactId());
             // Upload the Raw Audio file to S3
             if (mixed.length() > 0) {
-                S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX,
+                S3UploadInfo uploadInfo = AudioUtils.uploadAudio(REGION, RECORDINGS_BUCKET_NAME, RECORDINGS_KEY_PREFIX, recording.getInitiationTimestamp(),
                         mixed.toString(), recording.getContactId(), RECORDINGS_PUBLIC_READ_ACL, getAWSCredentials());
 
                 recording.setAudioMixed(uploadInfo.getCloudfrontUrl(CLOUDFRONT_DOMAIN));

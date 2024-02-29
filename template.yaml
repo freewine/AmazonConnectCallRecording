@@ -1,14 +1,24 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  ProcessKvsRecording
-
-  Sample SAM Template for ProcessKvsRecording
+  Process call Recordings of Amazon Connect
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 20
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Recordings Bucket Name
+  S3BucketPrefix:
+    Type: String
+    Default: recordings/
+    Description: Recordings Key Prefix, such as recordings/
+  CloudFrontDomain:
+    Type: String
+    Description: CloudFront Distribution
 
 Resources:
   ProcessKvsRecording:
@@ -22,25 +32,29 @@ Resources:
       MemorySize: 512
       Timeout: 300
       Policies:
-        - AmazonDynamoDBFullAccess
-        - AmazonS3FullAccess
         - AmazonKinesisVideoStreamsReadOnlyAccess
         - AmazonKinesisReadOnlyAccess
+        - Statement:
+            - Sid: AmazonS3Access
+              Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3BucketName}/${S3BucketPrefix}*'
         - Statement:
           - Sid: UpdateAmazonConnectContactAttributes
             Effect: Allow
             Action:
               - connect:UpdateContactAttributes
-            Resource: !Sub 'arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/0986d350-0ebf-46ed-8c88-db4b40e93690/contact/*'
+            Resource: !Sub 'arn:${AWS::Partition}:connect:${AWS::Region}:${AWS::AccountId}:instance/*/contact/*'
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
-          REGION: us-west-2
-          RECORDINGS_BUCKET_NAME: freewine-connect-voicemail-us-west-2
-          RECORDINGS_KEY_PREFIX: recordings/
+          REGION: !Ref AWS::Region
+          RECORDINGS_BUCKET_NAME: !Ref S3BucketName
+          RECORDINGS_KEY_PREFIX: !Ref S3BucketPrefix
           START_SELECTOR_TYPE: FRAGMENT_NUMBER
-          DDB_TABLE: ConnectCallRecording
-          CLOUDFRONT_DOMAIN: https://xxxxxxxxx.cloudfront.net
+          CLOUDFRONT_DOMAIN: !Ref CloudFrontDomain
 
 Outputs:
   ProcessKvsRecording:

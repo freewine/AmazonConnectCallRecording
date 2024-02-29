@@ -26,6 +26,7 @@ public class ContactTraceRecord {
     private final String instanceARN;
     private final String contactId;
     private final String initialContactId;
+    private final String initiationTimestamp;
     private final CustomerEndpoint customerEndpoint;
     private final ContactFlowAttributes attributes;
     private final List<KVStreamRecordingData> recordings = new ArrayList<>();
@@ -34,6 +35,7 @@ public class ContactTraceRecord {
         this.instanceARN = jsonObject.getString("InstanceARN");
         this.contactId = jsonObject.getString("ContactId");
         this.initialContactId = jsonObject.isNull("InitialContactId") ? null : jsonObject.getString("InitialContactId");
+        this.initiationTimestamp = jsonObject.getString("InitiationTimestamp");
         this.customerEndpoint = new CustomerEndpoint(jsonObject.getJSONObject("CustomerEndpoint"));
         this.attributes = new ContactFlowAttributes(jsonObject.getJSONObject("Attributes"));
         JSONArray recordings = jsonObject.isNull("Recordings") ? null : jsonObject.getJSONArray("Recordings");

@@ -36,6 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Utility class to download/upload audio files from/to S3
@@ -87,7 +89,7 @@ public final class AudioUtils {
      * @param audioFilePath
      * @param awsCredentials
      */
-    public static S3UploadInfo uploadAudio(Regions region, String bucketName, String keyPrefix, String audioFilePath,
+    public static S3UploadInfo uploadAudio(Regions region, String bucketName, String keyPrefix, String initiationTimestamp, String audioFilePath,
                                            String contactId, boolean publicReadAcl,
                                            AWSCredentialsProvider awsCredentials) {
         File wavFile = new File(audioFilePath);
@@ -100,8 +102,9 @@ public final class AudioUtils {
                     .withCredentials(awsCredentials)
                     .build();
 
+            ZonedDateTime zdt = parseTimestamp(initiationTimestamp);
             // upload the raw audio file to the designated S3 location
-            String objectKey = keyPrefix + wavFile.getName();
+            String objectKey = keyPrefix + zdt.getYear() + '/' + zdt.getMonthValue() + '/' + zdt.getDayOfMonth() + '/' + wavFile.getName();
 
             logger.info(String.format("Uploading Audio: to %s/%s from %s", bucketName, objectKey, wavFile));
             PutObjectRequest request = new PutObjectRequest(bucketName, objectKey, wavFile);
@@ -132,7 +135,7 @@ public final class AudioUtils {
     }
 
 
-    public static File MixAudio(String fromCustomer, String toCustomer, String contactId) {
+    public static File mixMonoAudios(String fromCustomer, String toCustomer, String contactId) {
         //long unixTime = System.currentTimeMillis() / 1000L;
         File output = new File(String.format("/tmp/%s_audio_mixed.wav", contactId/*, unixTime*/));
         try {
@@ -142,14 +145,14 @@ public final class AudioUtils {
 
             logger.info(String.format("file size: %s --- %s", fromCustomerFile.length(), toCustomerFile.length()));
 
-            AudioInputStream from = AudioSystem.getAudioInputStream(fromCustomerFile);
-            AudioInputStream to = AudioSystem.getAudioInputStream(toCustomerFile);
+            AudioInputStream fromCustomerStream = AudioSystem.getAudioInputStream(fromCustomerFile);
+            AudioInputStream toCustomerStream = AudioSystem.getAudioInputStream(toCustomerFile);
 
-            mixSamples(from, to, output);
+            mixAudioStreams(fromCustomerStream, toCustomerStream, output);
 
             // Close streams
-            from.close();
-            to.close();
+            fromCustomerStream.close();
+            toCustomerStream.close();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -164,10 +167,10 @@ public final class AudioUtils {
      * The audio to customer is stored in the right channel.
      * The audio from customer is stored in the left channel.
      */
-    public static void mixSamples(AudioInputStream from, AudioInputStream to, File output) throws IOException {
-        AudioFormat format = from.getFormat();
+    public static void mixAudioStreams(AudioInputStream left, AudioInputStream right, File output) throws IOException {
+        AudioFormat format = left.getFormat();
         int frameSize = format.getFrameSize();
-        int size = from.available();
+        int size = left.available();
 
         byte[] result = new byte[size * 2];
 
@@ -179,17 +182,17 @@ public final class AudioUtils {
             byte[] data1 = new byte[frameSize];
             byte[] data2 = new byte[frameSize];
 
-            int data1Len = from.read(data1);
-            int data2Len = to.read(data2);
+            int data1Len = left.read(data1);
+            int data2Len = right.read(data2);
 
             if (data1Len <= 0 || data2Len <= 0) {
                 break;
             }
 
             // Convert bytes to 16-bit sample
-            sample1 = getSample(data1[0], data1[1]);
+            sample1 = get16BitSample(data1[0], data1[1]);
 
-            sample2 = getSample(data2[0], data2[1]);
+            sample2 = get16BitSample(data2[0], data2[1]);
 
             // Convert back to bytes in bigEndian model, and mix data to stereo
             result[i * 2] = (byte) (sample1 >> 8);
@@ -212,7 +215,18 @@ public final class AudioUtils {
     }
 
     // Convert two bytes to a 16-bit signed sample in bigEndian model
-    public static short getSample(byte lower, byte upper) {
+    public static short get16BitSample(byte lower, byte upper) {
         return (short) ((lower << 8) | (upper & 0xFF));
+    }
+
+
+    private static ZonedDateTime parseTimestamp(String initiationTimestamp) {
+        // Use DateTimeFormatter instead of SimpleDateFormat
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+
+        // Parse directly to ZonedDateTime instead of Date
+        ZonedDateTime zdt = ZonedDateTime.parse(initiationTimestamp, formatter);
+
+        return zdt;
     }
 }

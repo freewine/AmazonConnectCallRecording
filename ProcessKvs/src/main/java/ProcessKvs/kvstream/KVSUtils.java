@@ -115,6 +115,7 @@ public final class KVSUtils {
                         if (contactIdFromStream != null && !contactIdFromStream.equals(contactId)) {
                             //expected Connect ContactId does not match the actual ContactId. End the streaming by
                             //returning an empty ByteBuffer
+                            logger.error("expected Connect ContactId does not match the actual ContactId");
                             return bufferMap;
                         }
                         tagProcessor.clear();
@@ -126,9 +127,11 @@ public final class KVSUtils {
                     long trackNumber = frame.getTrackNumber();
                     MkvTrackMetadata metadata = fragmentVisitor.getMkvTrackMetadata(trackNumber);
                     if (AUDIO_FROM_CUSTOMER.equals(metadata.getTrackName())) {
+                        //logger.info("AUDIO_FROM_CUSTOMER audioBuffer size: " + audioBuffer.remaining());
                         bufferMap.put(AUDIO_FROM_CUSTOMER, audioBuffer);
                         return bufferMap;
                     } else if (AUDIO_TO_CUSTOMER.equals(metadata.getTrackName())) {
+                        //logger.info("AUDIO_TO_CUSTOMER audioBuffer size: " + audioBuffer.remaining());
                         bufferMap.put(AUDIO_TO_CUSTOMER, audioBuffer);
                         return bufferMap;
                     }

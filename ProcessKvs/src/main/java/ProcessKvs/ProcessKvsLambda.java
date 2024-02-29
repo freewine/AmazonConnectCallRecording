@@ -39,7 +39,7 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
             try {
                 String recordData = new String(record.getKinesis().getData().array());
                 System.out.println("Record Data: " + recordData);
-                processRecord(recordData);
+                processCTR(recordData);
             } catch (Exception e) {
                 // if json does not contain required data, will exit early
                 System.out.println(e.toString());
@@ -49,8 +49,8 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
         return "{ \"result\": \"Success\" }";
     }
 
-    private void processRecord(String data) {
-        JSONObject json = new JSONObject(data);
+    private void processCTR(String ctrStr) {
+        JSONObject json = new JSONObject(ctrStr);
         ContactTraceRecord traceRecord = new ContactTraceRecord(json);
         List<KVStreamRecordingData> recordings = traceRecord.getRecordings();
 
@@ -60,9 +60,13 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
         }
 
         int recordingAuth = traceRecord.getAttributes().getRecordingAuth();
-
         if ((recordingAuth <= AudioUtils.AUTH_AUDIO_NONE || recordingAuth > AudioUtils.AUTH_AUDIO_MIXED)) {
             logger.info("Recording is not authorized, skipped. recordingAuth:" + recordingAuth);
+            return;
+        }
+
+        if (traceRecord.getAttributes().hasRecordingAttributes()) {
+            logger.info("Recording Attributes existed, skipped.");
             return;
         }
 
@@ -97,8 +101,8 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
             }
           ],
          */
-        for(KVStreamRecordingData recording: recordings) {
-            if(!recording.getStorageType().equals("KINESIS_VIDEO_STREAM")) {
+        for (KVStreamRecordingData recording : recordings) {
+            if (!recording.getStorageType().equals("KINESIS_VIDEO_STREAM")) {
                 logger.info("Recording StorageType is not KINESIS_VIDEO_STREAM, skipped. StorageType:" + recording.getStorageType());
                 continue;
             }
@@ -106,7 +110,7 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
             logger.info("Recording StorageType is KINESIS_VIDEO_STREAM, recording processing started");
 
             //System.out.println(event);
-            RecordingData recordingData = parseEvent(traceRecord, recording);
+            RecordingData recordingData = extractRecordingData(traceRecord, recording);
 
             // Begin processing audio stream
             AudioStreamService streamingService = new AudioStreamService();
@@ -116,27 +120,27 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
 
                 logger.info(String.format("fromCustomer: %s, toCustomer: %s, mixed: %s", recordingData.getAudioFromCustomer(), recordingData.getAudioToCustomer(), recordingData.getAudioMixed()));
                 //append audio file path to connect attributes
-                if(recordingData.getAudioFromCustomer() != null && (!recordingData.getAudioFromCustomer().isEmpty())) {
-                    if(connectAttributes.getAudioFromCustomer() == null || connectAttributes.getAudioFromCustomer().isEmpty()) {
+                if (recordingData.getAudioFromCustomer() != null && (!recordingData.getAudioFromCustomer().isEmpty())) {
+                    if (connectAttributes.getAudioFromCustomer() == null || connectAttributes.getAudioFromCustomer().isEmpty()) {
                         connectAttributes.setAudioFromCustomer(recordingData.getAudioFromCustomer());
                     } else {
-                        connectAttributes.setAudioFromCustomer(connectAttributes.getAudioFromCustomer()  + ", " +recordingData.getAudioFromCustomer());
+                        connectAttributes.setAudioFromCustomer(connectAttributes.getAudioFromCustomer() + ", " + recordingData.getAudioFromCustomer());
                     }
                 }
 
-                if(recordingData.getAudioToCustomer() != null && (!recordingData.getAudioToCustomer().isEmpty())) {
-                    if(connectAttributes.getAudioToCustomer() == null || connectAttributes.getAudioToCustomer().isEmpty()) {
+                if (recordingData.getAudioToCustomer() != null && (!recordingData.getAudioToCustomer().isEmpty())) {
+                    if (connectAttributes.getAudioToCustomer() == null || connectAttributes.getAudioToCustomer().isEmpty()) {
                         connectAttributes.setAudioToCustomer(recordingData.getAudioToCustomer());
                     } else {
-                        connectAttributes.setAudioToCustomer(connectAttributes.getAudioToCustomer()  + ", " +recordingData.getAudioToCustomer());
+                        connectAttributes.setAudioToCustomer(connectAttributes.getAudioToCustomer() + ", " + recordingData.getAudioToCustomer());
                     }
                 }
 
-                if(recordingData.getAudioMixed() != null && (!recordingData.getAudioMixed().isEmpty())) {
-                    if(connectAttributes.getAudioMixed() == null || connectAttributes.getAudioMixed().isEmpty()) {
+                if (recordingData.getAudioMixed() != null && (!recordingData.getAudioMixed().isEmpty())) {
+                    if (connectAttributes.getAudioMixed() == null || connectAttributes.getAudioMixed().isEmpty()) {
                         connectAttributes.setAudioMixed(recordingData.getAudioMixed());
                     } else {
-                        connectAttributes.setAudioMixed(connectAttributes.getAudioMixed()  + ", " +recordingData.getAudioMixed());
+                        connectAttributes.setAudioMixed(connectAttributes.getAudioMixed() + ", " + recordingData.getAudioMixed());
                     }
                 }
             } catch (Exception e) {
@@ -146,16 +150,17 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
             logger.info("recording processing finished");
 
         }
-        //updateConnectContactAttributes(traceRecord, connectAttributes);
+        updateConnectContactAttributes(traceRecord, connectAttributes);
     }
 
-    private RecordingData parseEvent(ContactTraceRecord traceRecord, KVStreamRecordingData recording) {
+    private RecordingData extractRecordingData(ContactTraceRecord traceRecord, KVStreamRecordingData recording) {
 
         return RecordingData.builder()
                 .withAwsRegion(REGION.getName())
                 .withRecordingAuth(traceRecord.getAttributes().getRecordingAuth())
                 .withContactId(traceRecord.getContactId())
                 .withInitialContactId(traceRecord.getInitialContactId())
+                .withInitiationTimestamp(traceRecord.getInitiationTimestamp())
                 .withInstanceARN(traceRecord.getInstanceARN())
                 .withCustomerNumber(traceRecord.getCustomerEndpoint().getAddress())
                 .withLanguageCode(traceRecord.getAttributes().getLanguageCode())

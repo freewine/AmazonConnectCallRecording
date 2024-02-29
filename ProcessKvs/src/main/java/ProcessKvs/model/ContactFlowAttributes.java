@@ -26,6 +26,10 @@ public class ContactFlowAttributes {
     //default "en-US"
     private String languageCode = "en-US";
 
+    private String audioFromCustomer;
+    private String audioToCustomer;
+    private String audioMixed;
+
     public ContactFlowAttributes(JSONObject jsonObject) {
         if (jsonObject.has("recordingAuth")) {
             this.recordingAuth = NumberUtils.toInt(jsonObject.getString("recordingAuth"), -1);
@@ -34,6 +38,19 @@ public class ContactFlowAttributes {
         if (jsonObject.has("languageCode")) {
             this.languageCode = jsonObject.getString("languageCode");
         }
+
+        if (jsonObject.has("audioFromCustomer")) {
+            this.audioFromCustomer = jsonObject.getString("audioFromCustomer");
+        }
+        if (jsonObject.has("audioToCustomer")) {
+            this.audioToCustomer = jsonObject.getString("audioToCustomer");
+        }
+        if (jsonObject.has("audioMixed")) {
+            this.audioMixed = jsonObject.getString("audioMixed");
+        }
     }
 
+    public boolean hasRecordingAttributes() {
+        return audioFromCustomer != null || audioToCustomer != null || audioMixed != null;
+    }
 }

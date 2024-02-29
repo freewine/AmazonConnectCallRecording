@@ -1,0 +1,90 @@
+{
+  "Records": [
+    {
+      "kinesis": {
+        "partitionKey": "partitionKey-03",
+        "kinesisSchemaVersion": "1.0",
+        "data": {
+          "AWSAccountId": "012345678910",
+          "AWSContactTraceRecordFormatVersion": "2017-03-10",
+          "Agent": null,
+          "AgentConnectionAttempts": 0,
+          "AnsweringMachineDetectionStatus": null,
+          "Attributes": {
+            "recordingAuth": "3"
+          },
+          "Campaign": {
+            "CampaignId": null
+          },
+          "Channel": "VOICE",
+          "ConnectedToSystemTimestamp": "2024-02-25T08:35:09Z",
+          "ContactDetails": {},
+          "ContactId": "5ca32fbd-8f92-46af-92a5-6b0f970f0efe",
+          "CustomerEndpoint": {
+            "Address": "+11234567890",
+            "Type": "TELEPHONE_NUMBER"
+          },
+          "CustomerVoiceActivity": null,
+          "DisconnectReason": "CONTACT_FLOW_DISCONNECT",
+          "DisconnectTimestamp": "2024-02-25T08:35:21Z",
+          "InitialContactId": null,
+          "InitiationMethod": "INBOUND",
+          "InitiationTimestamp": "2024-02-25T08:35:09Z",
+          "InstanceARN": "arn:aws:connect:us-west-2:012345678910:instance/9308c2a1-9bc6-4cea-8290-6c0b4a6d38fa",
+          "LastUpdateTimestamp": "2024-02-25T08:36:30Z",
+          "MediaStreams": [
+            {
+              "Type": "AUDIO"
+            }
+          ],
+          "NextContactId": null,
+          "PreviousContactId": null,
+          "Queue": null,
+          "Recording": null,
+          "Recordings": [
+            {
+              "DeletionReason": null,
+              "FragmentStartNumber": "91343852333181481910283634075836164960977858977",
+              "FragmentStopNumber": "91343852333181481954849475490109857033444149129",
+              "Location": "arn:aws:kinesisvideo:us-west-2:123456789012:stream/connect-contact-a3d73b84-ce0e-479a-a9dc-5637c9d30ac9/1565272947806",
+              "MediaStreamType": "VIDEO",
+              "ParticipantType": "CUSTOMER",
+              "StartTimestamp": "2024-02-25T08:35:12Z",
+              "Status": null,
+              "StopTimestamp": "2024-02-25T08:35:21Z",
+              "StorageType": "KINESIS_VIDEO_STREAM"
+            }
+          ],
+          "References": [],
+          "ScheduledTimestamp": null,
+          "SegmentAttributes": {
+            "connect:Subtype": {
+              "ValueString": "connect:Telephony"
+            }
+          },
+          "SystemEndpoint": {
+            "Address": "+11234567890",
+            "Type": "TELEPHONE_NUMBER"
+          },
+          "Tags": {
+            "aws:connect:instanceId": "9308c2a1-9bc6-4cea-8290-6c0b4a6d38fa",
+            "aws:connect:systemEndpoint": "+13343774004"
+          },
+          "TaskTemplateInfo": null,
+          "TransferCompletedTimestamp": null,
+          "TransferredToEndpoint": null,
+          "VoiceIdResult": null
+        },
+        "sequenceNumber": "49545115243490985018280067714973144582180062593244200961",
+        "approximateArrivalTimestamp": 1428537600
+      },
+      "eventSource": "aws:kinesis",
+      "eventID": "shardId-000000000000:49545115243490985018280067714973144582180062593244200961",
+      "invokeIdentityArn": "arn:aws:iam::EXAMPLE",
+      "eventVersion": "1.0",
+      "eventName": "aws:kinesis:record",
+      "eventSourceARN": "arn:aws:kinesis:EXAMPLE",
+      "awsRegion": "us-west-2"
+    }
+  ]
+}

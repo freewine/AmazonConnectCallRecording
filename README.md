@@ -1,10 +1,10 @@
 # ProcessKvsRecording
 
-This lambda demonstrates how to process Amazon connect call recording saving in Kinesis Video Streams(KVS). The architecture diagram is as follows.
+This project demonstrates how to process Amazon connect call recording saving in Kinesis Video Streams(KVS). The architecture diagram is as follows.
 
 ![architecture](architecture.png)
 
-The call recording is stored in KVS, the lambda parse CTR(which include KVS audio information), read audio streams and store it to Amazon S3. 
+Amazon connect saves the call recording to KVS, lambda function parses CTRs(which include KVS audio information), read audio streams and store it to Amazon S3. Agents or managers can publicly access audio files via CloudFront.
 
 This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
 
@@ -12,9 +12,7 @@ This project contains source code and supporting files for a serverless applicat
 - events - Invocation events that you can use to invoke the function.
 - ProcessKvs/src/test - Unit tests for the application code. 
 - template.yaml - A template that defines the application's AWS resources.
-- SampleFlows/Demo Call forward Recording - Sample Amazon Connect flow.
-
-The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+- SampleFlows - Sample Amazon Connect flows.
 
 If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
 The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
@@ -31,28 +29,58 @@ The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI
 * [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
 * [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
 
-## Lambda Execution Role policies
-The lambda need to read stream from KVS, uploads voice recording to S3, and save the result to Dynamo DB. So corresponding permissions need to be configured in template.yaml. For simplicity, the following Policies are granted for full access permissions. In production deployments, it's recommended to follow the principle of least privilege and only grant specific permissions to the specific resources.
+## SAM Template Configurations
+The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code, or configure application.
+
+### SAM Parameters
+SAM Parameters in `template.yaml` file define variables which you must input when deploying the application using SAM CLI.
 ```bash
-Policies:
-    - AmazonDynamoDBFullAccess
-    - AmazonS3FullAccess
-    - AmazonKinesisVideoStreamsReadOnlyAccess
-    - AmazonKinesisReadOnlyAccess
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Recordings Bucket Name
+  S3BucketPrefix:
+    Type: String
+    Default: recordings/
+    Description: Recordings Key Prefix, such as recordings/
+  CloudFrontDomain:
+    Type: String
+    Description: CloudFront Distribution
 ```
 
-## Lambda Environment variables
-Some Lambda environment variables need to be set to run the Lambda properly. `REGION` us used for where Amazon Connect is running, `RECORDINGS_BUCKET_NAME` is for the S3 bucket in which the voice recording will be uploaded, `RECORDINGS_KEY_PREFIX` for the Bucket prefix, `DDB_TABLE` for the Dynamo DB table in which Result will be saved. Other environment variables should not be changed.
+### Lambda Execution Role policies
+The lambda need to read audio streams from KVS, uploads voice recording files to S3. So corresponding permissions need to be configured in template.yaml. We define `S3BucketName` and `S3BucketPrefix` in Parameters section.
+```bash
+Policies:
+  - AmazonKinesisVideoStreamsReadOnlyAccess
+  - AmazonKinesisReadOnlyAccess
+  - Statement:
+      - Sid: AmazonS3Access
+        Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3BucketName}/${S3BucketPrefix}*'
+  - Statement:
+    - Sid: UpdateAmazonConnectContactAttributes
+      Effect: Allow
+      Action:
+        - connect:UpdateContactAttributes
+      Resource: !Sub 'arn:${AWS::Partition}:connect:${AWS::Region}:${AWS::AccountId}:instance/*/contact/*'
+```
+
+### Lambda Environment variables
+Some Lambda environment variables need to be set to run the Lambda properly. `REGION` is used for where Amazon Connect is running, `RECORDINGS_BUCKET_NAME` is for the S3 bucket in which the voice recording will be uploaded, `RECORDINGS_KEY_PREFIX` for the S3 prefix of voice recordings. `CLOUDFRONT_DOMAIN` for CloudFront distribution allowing users to publicly access audio files in S3 bucket.
+Lambda environment variables automatically reference parameters defined before. You shouldn't need to change them.
 ```bash
 Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
-    Variables:
-        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
-        REGION: us-west-2
-        RECORDINGS_BUCKET_NAME: freewine-connect-voicemail-us-west-2
-        RECORDINGS_KEY_PREFIX: recordings/
-        START_SELECTOR_TYPE: FRAGMENT_NUMBER
-        DDB_TABLE: ConnectCallRecording
-        CLOUDFRONT_DOMAIN: https://xxxxxxxx.cloudfront.net
+  Variables:
+    JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
+    REGION: !Ref AWS::Region
+    RECORDINGS_BUCKET_NAME: !Ref S3BucketName
+    RECORDINGS_KEY_PREFIX: !Ref S3BucketPrefix
+    START_SELECTOR_TYPE: FRAGMENT_NUMBER
+    CLOUDFRONT_DOMAIN: !Ref CloudFrontDomain
 ```
 
 ## Deploy the application
@@ -76,14 +104,17 @@ The first command will build the source of your application. The second command 
 
 * **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
 * **AWS Region**: The AWS region you want to deploy your app to.
+* **Parameter S3BucketName**: The S3 bucket in which the voice recordings will be uploaded.
+* **Parameter S3BucketPrefix** [recordings/]: The S3 prefix of voice recordings.
+* **Parameter CloudFrontDomain**: CloudFront distribution allowing users to publicly access audio files in S3 bucket
 * **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
 * **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
 * **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
+You can find your Lambda function in the output values displayed after deployment.
 
 ## Import Amazon Connect contact flow
-The sample Amazon Connect contact flows are included in the `SampleFlows` folder in this project. You can import it to Amazon Connect for testing.
+The sample Amazon Connect contact flows are placed in the `SampleFlows` folder in this project. You can import them to Amazon Connect for testing.
 
 
 ## Use the SAM CLI to build and test locally
@@ -101,14 +132,7 @@ Test a single function by invoking it directly with a test event. An event is a 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```bash
-ProcessKvsRecording$ sam local invoke ProcessKvsRecording --event events/event.json
-```
-
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
-
-```bash
-ProcessKvsRecording$ sam local start-api
-ProcessKvsRecording$ curl http://localhost:3000/
+ProcessKvsRecording$ sam local invoke ProcessKvsRecording --event events/kinesis-event.json
 ```
 
 ## Add a resource to your application
