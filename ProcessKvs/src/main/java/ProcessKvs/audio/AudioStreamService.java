@@ -52,6 +52,7 @@ public class AudioStreamService {
     public void processAudioStream(RecordingData recording) throws Exception {
         String streamARN = recording.getStreamARN();
         String startFragmentNum = recording.getStartFragmentNum();
+        String stopFragmentNum = recording.getStopFragmentNumber();
         String contactId = recording.getContactId();
         String languageCode = recording.getLanguageCode();
 
@@ -81,6 +82,16 @@ public class AudioStreamService {
 
             Map<String, ByteBuffer> bufferMap = KVSUtils.getByteBufferFromStream(streamingMkvReader, fragmentVisitor, tagProcessor, contactId);
             while (!bufferMap.isEmpty()) {
+                //if previousFragmentNum equals stopFragmentNum, break while loop
+                String previousFragmentNum = null;
+                if(fragmentVisitor.getPreviousFragmentMetadata().isPresent()) {
+                    previousFragmentNum = fragmentVisitor.getPreviousFragmentMetadata().get().getFragmentNumberString();
+                }
+                if(previousFragmentNum != null && stopFragmentNum != null && stopFragmentNum.equals(previousFragmentNum)) {
+                    logger.info(String.format("previousFragmentNum=%s, stop getByteBufferFromStream while loop", previousFragmentNum));
+                    break;
+                }
+
                 if (bufferMap.containsKey(KVSUtils.AUDIO_FROM_CUSTOMER)) {
                     // Write audio bytes from the KVS stream to the temporary file
                     ByteBuffer audioBuffer = bufferMap.get(KVSUtils.AUDIO_FROM_CUSTOMER);

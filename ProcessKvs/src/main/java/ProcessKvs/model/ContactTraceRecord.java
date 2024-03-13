@@ -25,6 +25,7 @@ public class ContactTraceRecord {
 
     private final String instanceARN;
     private final String contactId;
+    private final String channel;
     private final String initialContactId;
     private final String initiationTimestamp;
     private final CustomerEndpoint customerEndpoint;
@@ -34,6 +35,7 @@ public class ContactTraceRecord {
     public ContactTraceRecord(JSONObject jsonObject) {
         this.instanceARN = jsonObject.getString("InstanceARN");
         this.contactId = jsonObject.getString("ContactId");
+        this.channel = jsonObject.getString("Channel");
         this.initialContactId = jsonObject.isNull("InitialContactId") ? null : jsonObject.getString("InitialContactId");
         this.initiationTimestamp = jsonObject.getString("InitiationTimestamp");
         this.customerEndpoint = new CustomerEndpoint(jsonObject.getJSONObject("CustomerEndpoint"));

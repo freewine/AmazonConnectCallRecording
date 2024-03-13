@@ -54,6 +54,12 @@ public class ProcessKvsLambda implements RequestHandler<KinesisEvent, String> {
         ContactTraceRecord traceRecord = new ContactTraceRecord(json);
         List<KVStreamRecordingData> recordings = traceRecord.getRecordings();
 
+        if(!traceRecord.getChannel().equals("VOICE"))
+        {
+            logger.info("Not Voice channel, skipped");
+            return;
+        }
+
         if (recordings.isEmpty()) {
             logger.info("No Voice recording, skipped");
             return;
