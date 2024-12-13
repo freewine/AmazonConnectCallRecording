@@ -4,4 +4,5 @@ ProcessKvs/.gradle
 ProcessKvs/bin
 ProcessKvs/build
 .idea
+.vscode
 samconfig.toml

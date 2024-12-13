@@ -2,11 +2,11 @@
 
 Amazon Connect is an AI-powered omnichannel cloud contact center service from AWS. It's easy to use and can scale to any size based on customer needs, and is widely adopted across industries and organizations of all sizes.
 
-Amazon Connect has [native call recording capabilities](https://docs.aws.amazon.com/connect/latest/adminguide/set-up-recordings.html) that allow recording of agents only, customers only, or both agents and customers simultaneously. However, this feature only records conversations when connected to an agent; conversations before/after agent connection, or conversations without agent participation, are not recorded.
+Amazon Connect has [native call recording capabilities](https://docs.aws.amazon.com/connect/latest/adminguide/set-up-recordings.html) that allow recording of automated interactions (that is, IVR) and agent interactions. However, any transfers to external numbers during the agent interaction are not recorded after the agent leaves the call.
 
-In real-world scenarios, there are many requirements for call recording without agent participation. For example, in call transfer scenarios where customer calls are forwarded to external numbers, or in notification scenarios where calls are made directly to customers to play voice messages. In these scenarios, call recording is often needed for purposes such as historical call tracking, customer sentiment analysis, and training using recordings.
+In real-world scenarios, there are many requirements for customized call recording. For example, we only need to record designated partial call interactions, or we need to integrate with ASR system after recording the calls. In some scenarios, after customer calls are forwarded to external numbers and agent leaves, we also need to record the calls.  
 
-This project customizes a comprehensive call recording solution for Amazon Connect using services such as Kinesis Video Streams (KVS), Kinesis Data Streams (KDS), and Lambda, and implements call recording whether an agent is involved or not.
+This project customizes a comprehensive call recording solution for Amazon Connect using services such as Amazon Kinesis Video Streams (KVS), Amazon Kinesis Data Streams (KDS) and Amazon Lambda, etc.
 
 The architecture diagram is as follows.
 
