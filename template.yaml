@@ -26,11 +26,14 @@ Resources:
     Properties:
       CodeUri: ProcessKvs
       Handler: ProcessKvs.ProcessKvsLambda::handleRequest
-      Runtime: java11
+      Runtime: java17
       Architectures:
         - x86_64
       MemorySize: 512
       Timeout: 300
+      SnapStart:
+        ApplyOn: PublishedVersions
+      AutoPublishAlias: SnapStart
       Policies:
         - AmazonKinesisVideoStreamsReadOnlyAccess
         - AmazonKinesisReadOnlyAccess

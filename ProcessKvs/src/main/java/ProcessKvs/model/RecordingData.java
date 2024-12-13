@@ -13,7 +13,7 @@ import org.joda.time.DateTime;
 public class RecordingData {
     private String awsRegion;
 
-    private int recordingAuth = 0; //0: no recording, 1: recording from customer, 2: recording to customer, 3: ALL
+    private int recordingAuth; //0: no recording, 1: recording from customer, 2: recording to customer, 3: ALL
 
     private String instanceARN;
     private String initialContactId;

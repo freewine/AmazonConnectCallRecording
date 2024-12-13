@@ -24,7 +24,6 @@ import com.amazonaws.services.kinesisvideo.model.GetMediaRequest;
 import com.amazonaws.services.kinesisvideo.model.GetMediaResult;
 import com.amazonaws.services.kinesisvideo.model.StartSelector;
 import com.amazonaws.services.kinesisvideo.model.StartSelectorType;
-import com.google.common.base.Strings;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,9 +69,9 @@ public final class KVSUtils {
      * @return
      */
     private static String getContactIdFromStreamTag(FragmentMetadataVisitor.BasicMkvTagProcessor tagProcessor) {
-        Iterator iter = tagProcessor.getTags().iterator();
+        Iterator<MkvTag> iter = tagProcessor.getTags().iterator();
         while (iter.hasNext()) {
-            MkvTag tag = (MkvTag) iter.next();
+            MkvTag tag = iter.next();
             if ("ContactId".equals(tag.getTagName())) {
                 return tag.getTagValue();
             }

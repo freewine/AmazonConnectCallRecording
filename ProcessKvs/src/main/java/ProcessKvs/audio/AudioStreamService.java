@@ -54,7 +54,6 @@ public class AudioStreamService {
         String startFragmentNum = recording.getStartFragmentNum();
         String stopFragmentNum = recording.getStopFragmentNumber();
         String contactId = recording.getContactId();
-        String languageCode = recording.getLanguageCode();
 
         logger.info(String.format("StreamARN=%s, startFragmentNum=%s, contactId=%s", streamARN, startFragmentNum, contactId));
 

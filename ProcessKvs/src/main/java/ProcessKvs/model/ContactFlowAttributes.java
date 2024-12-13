@@ -17,8 +17,6 @@ import lombok.Getter;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 
-import java.util.Optional;
-
 @Getter
 public class ContactFlowAttributes {
     private int recordingAuth = -1;

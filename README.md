@@ -1,39 +1,37 @@
-# ProcessKvsRecording
+# Sample Comprehensive Call Recording for Amazon Connect
 
-This project demonstrates how to process Amazon connect call recording saving in Kinesis Video Streams(KVS). The architecture diagram is as follows.
+Amazon Connect is an AI-powered omnichannel cloud contact center service from AWS. It's easy to use and can scale to any size based on customer needs, and is widely adopted across industries and organizations of all sizes.
+
+Amazon Connect has [native call recording capabilities](https://docs.aws.amazon.com/connect/latest/adminguide/set-up-recordings.html) that allow recording of agents only, customers only, or both agents and customers simultaneously. However, this feature only records conversations when connected to an agent; conversations before/after agent connection, or conversations without agent participation, are not recorded.
+
+In real-world scenarios, there are many requirements for call recording without agent participation. For example, in call transfer scenarios where customer calls are forwarded to external numbers, or in notification scenarios where calls are made directly to customers to play voice messages. In these scenarios, call recording is often needed for purposes such as historical call tracking, customer sentiment analysis, and training using recordings.
+
+This project customizes a comprehensive call recording solution for Amazon Connect using services such as Kinesis Video Streams (KVS), Kinesis Data Streams (KDS), and Lambda, and implements call recording whether an agent is involved or not.
+
+The architecture diagram is as follows.
 
 ![architecture](architecture.png)
 
-Amazon connect saves the call recording to KVS, lambda function parses CTRs(which include KVS audio information), read audio streams and store it to Amazon S3. Agents or managers can publicly access audio files via CloudFront.
+Amazon connect saves the call recording to KVS, lambda function parses CTRs(which include KVS audio information), read audio streams and store it to Amazon S3. Agents or managers can access audio files via CloudFront.
 
 This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
 
 - ProcessKvs/src/main - Code for the application's Lambda function.
 - events - Invocation events that you can use to invoke the function.
-- ProcessKvs/src/test - Unit tests for the application code. 
+- ProcessKvs/src/test - Unit tests for the application code.
 - template.yaml - A template that defines the application's AWS resources.
 - SampleFlows - Sample Amazon Connect flows.
 
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
-
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
-
 ## SAM Template Configurations
-The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code, or configure application.
+
+The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+
+The application uses several AWS resources, including Lambda functions. These resources are defined in the `template.yaml` file.
 
 ### SAM Parameters
+
 SAM Parameters in `template.yaml` file define variables which you must input when deploying the application using SAM CLI.
+
 ```bash
 Parameters:
   S3BucketName:
@@ -49,7 +47,9 @@ Parameters:
 ```
 
 ### Lambda Execution Role policies
+
 The lambda need to read audio streams from KVS, uploads voice recording files to S3. So corresponding permissions need to be configured in template.yaml. We define `S3BucketName` and `S3BucketPrefix` in Parameters section.
+
 ```bash
 Policies:
   - AmazonKinesisVideoStreamsReadOnlyAccess
@@ -70,8 +70,10 @@ Policies:
 ```
 
 ### Lambda Environment variables
+
 Some Lambda environment variables need to be set to run the Lambda properly. `REGION` is used for where Amazon Connect is running, `RECORDINGS_BUCKET_NAME` is for the S3 bucket in which the voice recording will be uploaded, `RECORDINGS_KEY_PREFIX` for the S3 prefix of voice recordings. `CLOUDFRONT_DOMAIN` for CloudFront distribution allowing users to publicly access audio files in S3 bucket.
 Lambda environment variables automatically reference parameters defined before. You shouldn't need to change them.
+
 ```bash
 Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
   Variables:
@@ -90,7 +92,7 @@ The Serverless Application Model Command Line Interface (SAM CLI) is an extensio
 To use the SAM CLI, you need the following tools.
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Java11 - [Install the Java 11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html)
+  java17 - [Install the Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
 
 To build and deploy your application for the first time, run the following in your shell:
@@ -114,15 +116,15 @@ The first command will build the source of your application. The second command 
 You can find your Lambda function in the output values displayed after deployment.
 
 ## Import Amazon Connect contact flow
-The sample Amazon Connect contact flows are placed in the `SampleFlows` folder in this project. You can import them to Amazon Connect for testing.
 
+The sample Amazon Connect contact flows are placed in the `SampleFlows` folder in this project. You can import them to Amazon Connect for testing.
 
 ## Use the SAM CLI to build and test locally
 
 Build your application with the `sam build` command.
 
 ```bash
-ProcessKvsRecording$ sam build
+AmazonConnectCallRecording$ sam build
 ```
 
 The SAM CLI installs dependencies defined in `ProcessKvs/build.gradle`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
@@ -132,10 +134,11 @@ Test a single function by invoking it directly with a test event. An event is a 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```bash
-ProcessKvsRecording$ sam local invoke ProcessKvsRecording --event events/kinesis-event.json
+AmazonConnectCallRecording$ sam local invoke AmazonConnectCallRecording --event events/kinesis-event.json
 ```
 
 ## Add a resource to your application
+
 The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
 
 ## Fetch, tail, and filter Lambda function logs
@@ -145,30 +148,15 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-ProcessKvsRecording$ sam logs -n ProcessKvsRecording --stack-name ProcessKvsRecording --tail
+AmazonConnectCallRecording$ sam logs -n AmazonConnectCallRecording --stack-name AmazonConnectCallRecording --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
-
-## Unit tests
-
-Tests are defined in the `ProcessKvs/src/test` folder in this project.
-
-```bash
-ProcessKvsRecording$ cd ProcessKvsRecording
-ProcessKvsRecording$ gradle test.json
-```
 
 ## Cleanup
 
 To delete the application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
 
 ```bash
-aws cloudformation delete-stack --stack-name ProcessKvsRecording
+sam delete --stack-name AmazonConnectCallRecording
 ```
-
-## Resources
-
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
